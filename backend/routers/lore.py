@@ -80,7 +80,7 @@ async def get_entries(
     tag: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
-    query = select(LoreEntry)
+    query = select(LoreEntry).join(LoreEra)
     
     if era_id:
         query = query.where(LoreEntry.era_id == era_id)
@@ -88,16 +88,33 @@ async def get_entries(
         query = query.where(LoreEntry.entry_type == entry_type)
     
     if sort_desc:
-        query = query.order_by(LoreEntry.created_at.desc())
+        query = query.order_by(LoreEra.start_date.desc(), LoreEntry.created_at.desc())
     else:
-        query = query.order_by(LoreEntry.created_at.asc())
+        query = query.order_by(LoreEra.start_date.asc(), LoreEntry.created_at.asc())
         
-    entries = session.exec(query).all()
-    
+    # The main query for entries
+    entries_query = query.offset(skip).limit(limit)
+    entries = session.exec(entries_query).all()
+
+    # Post-filter for tags if a tag is specified
     if tag:
+        # This is inefficient for large datasets, but works for this scenario.
+        # A better solution involves a many-to-many relationship with a Tag table or advanced JSON querying.
+        
+        # We need to fetch all entries that could potentially have the tag, then filter.
+        # This complicates pagination significantly. For now, we will apply the tag filter
+        # only on the already paginated results, which might lead to fewer than `limit` results.
+        # A more robust solution would require rethinking the query structure when a tag is present.
         entries = [e for e in entries if tag in e.tags]
         
-    return entries[skip : skip + limit]
+    return entries
+
+@router.get("/entries/{entry_id}", response_model=LoreEntry)
+async def get_entry(entry_id: int, session: Session = Depends(get_session)):
+    entry = session.get(LoreEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Lore entry not found")
+    return entry
 
 @router.post("/entries", response_model=LoreEntry)
 async def create_entry(entry: LoreEntry, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):

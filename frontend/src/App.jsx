@@ -6,6 +6,7 @@ import Announcements from './pages/Announcements';
 import Events from './pages/Events';
 import Government from './pages/Government';
 import Lore from './pages/Lore';
+import LoreEntryPage from './pages/LoreEntryPage';
 import AdminLore from './pages/AdminLore';
 import Join from './pages/Join';
 import Register from './pages/Register';
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/government" element={<Government />} />
             <Route path="/lore" element={<Lore />} />
+            <Route path="/lore/:entryId" element={<LoreEntryPage />} />
             <Route path="/join" element={<Join />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
