@@ -1,0 +1,47 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      network: host
+    network_mode: "host"
+    volumes:
+      - ./backend:/app
+      - ./static:/app/static
+    environment:
+      - DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      network: host
+    network_mode: "host"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    network_mode: "host"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=dbname
+
+  caddy:
+    image: caddy:2
+    network_mode: "host"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
