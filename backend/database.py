@@ -4,7 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
+# Changed to database_v2.db to force schema update
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database_v2.db")
 
 # Handle postgresql:// vs postgres:// for SQLAlchemy
 if DATABASE_URL.startswith("postgres://"):

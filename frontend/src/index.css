@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-stone-900 text-amber-50 font-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-amber-400;
+  }
+}
+
+.bitz-card {
+  @apply bg-stone-800 border-2 border-amber-700 p-6 rounded-lg shadow-lg shadow-black/50;
+}
+
+.bitz-btn {
+  @apply bg-amber-700 hover:bg-amber-600 text-stone-100 font-bold py-2 px-4 rounded border border-amber-500 transition-colors duration-200;
+}
+
+.bitz-input {
+  @apply w-full p-2 mb-4 bg-stone-700 border border-amber-700 rounded text-amber-50 focus:outline-none focus:border-amber-500;
+}
+
+.bitz-link {
+  @apply text-amber-400 hover:text-amber-300 transition-colors duration-200;
+}

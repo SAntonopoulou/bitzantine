@@ -13,11 +13,12 @@ class UserRole(str, Enum):
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(index=True, unique=True)
+    username: str = Field(index=True, unique=True) # Character Name
     email: str = Field(index=True, unique=True)
+    discord_username: Optional[str] = Field(default=None)
     hashed_password: str
     role: UserRole = Field(default=UserRole.USER)
-    is_active: bool = Field(default=True)
+    is_active: bool = Field(default=False) # Default to False for new signups
     
     profile: Optional["Profile"] = Relationship(back_populates="user")
     posts: List["Post"] = Relationship(back_populates="author")
@@ -55,11 +56,13 @@ class UserCreate(SQLModel):
     username: str
     email: str
     password: str
+    discord_username: Optional[str] = None
 
 class UserRead(SQLModel):
     id: int
     username: str
     email: str
+    discord_username: Optional[str] = None
     role: UserRole
     is_active: bool
 
