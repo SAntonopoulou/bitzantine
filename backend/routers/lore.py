@@ -93,6 +93,7 @@ async def get_entries(
     limit: int = 10,
     sort_desc: bool = True,
     era_id: Optional[int] = None,
+    entry_type: Optional[EntryType] = None,
     search: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
@@ -101,6 +102,9 @@ async def get_entries(
     if era_id:
         query = query.where(LoreEntry.era_id == era_id)
     
+    if entry_type:
+        query = query.where(LoreEntry.entry_type == entry_type)
+
     if search:
         search_term = f"%{search}%"
         query = query.where(

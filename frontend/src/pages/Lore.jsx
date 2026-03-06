@@ -116,6 +116,7 @@ export default function Lore() {
   const [sortDesc, setSortDesc] = useState(true);
   const [activeEntryId, setActiveEntryId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [coreOnly, setCoreOnly] = useState(false);
   
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
@@ -158,19 +159,20 @@ export default function Lore() {
     fetchErasAndDots();
   }, []);
 
-  // Effect for resetting list on new search/sort
+  // Effect for resetting list on new search/sort/filter
   useEffect(() => {
+    setEntries([]);
     setPage(0);
-  }, [sortDesc, debouncedSearchTerm]);
+    setHasMore(true);
+  }, [sortDesc, debouncedSearchTerm, coreOnly]);
 
   // Effect for fetching data
   useEffect(() => {
     const fetchEntries = async () => {
       setLoading(true);
       let url = `${API_URL}/lore/entries?skip=${page * 10}&limit=10&sort_desc=${sortDesc}`;
-      if (debouncedSearchTerm) {
-        url += `&search=${debouncedSearchTerm}`;
-      }
+      if (debouncedSearchTerm) url += `&search=${debouncedSearchTerm}`;
+      if (coreOnly) url += `&entry_type=core`;
       
       try {
         const res = await fetch(url);
@@ -185,7 +187,7 @@ export default function Lore() {
     };
 
     fetchEntries();
-  }, [page, sortDesc, debouncedSearchTerm]);
+  }, [page, sortDesc, debouncedSearchTerm, coreOnly]);
 
   // Setup scroll tracking observer
   useEffect(() => {
@@ -261,7 +263,13 @@ export default function Lore() {
         <div className="flex-1 md:ml-64 p-8">
           <Search onSearchChange={setSearchTerm} />
           
-          <div className="flex justify-end items-center mb-8">
+          <div className="flex justify-end items-center mb-8 gap-4">
+            <button 
+              onClick={() => setCoreOnly(!coreOnly)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${coreOnly ? 'bg-amber-600 text-white' : 'bg-stone-800 border border-stone-600 text-stone-300 hover:bg-stone-700'}`}
+            >
+              Core Lore Only
+            </button>
             <button 
               onClick={() => setSortDesc(!sortDesc)}
               className="px-4 py-2 bg-stone-800 border border-stone-600 rounded-md text-sm font-medium text-stone-300 hover:bg-stone-700"
