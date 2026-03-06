@@ -6,6 +6,7 @@ import Announcements from './pages/Announcements';
 import Events from './pages/Events';
 import Government from './pages/Government';
 import Lore from './pages/Lore';
+import AdminLore from './pages/AdminLore';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -71,6 +72,11 @@ export default function App() {
             <Route path="/admin" element={
               <ProtectedRoute roles={['admin', 'super_admin']}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/lore" element={
+              <ProtectedRoute roles={['admin', 'super_admin']}>
+                <AdminLore />
               </ProtectedRoute>
             } />
           </Routes>
