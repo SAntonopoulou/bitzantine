@@ -8,7 +8,12 @@ import Government from './pages/Government';
 import Lore from './pages/Lore';
 import LoreEntryPage from './pages/LoreEntryPage';
 import EraPage from './pages/EraPage';
+import AdminDashboard from './pages/AdminDashboard';
 import AdminLore from './pages/AdminLore';
+import AddEra from './pages/AddEra';
+import AddEntry from './pages/AddEntry';
+import EditEraPage from './pages/EditEraPage';
+import EditEntryPage from './pages/EditEntryPage';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -16,7 +21,6 @@ import Profile from './pages/Profile';
 import Groups from './pages/Groups';
 import Vote from './pages/Vote';
 import Settings from './pages/Settings';
-import AdminDashboard from './pages/AdminDashboard';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -41,6 +45,7 @@ export default function App() {
         <div className="min-h-screen bg-stone-900 text-stone-200">
           <Navbar />
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/events" element={<Events />} />
@@ -52,37 +57,19 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             
-            <Route path="/profile/me" element={
-              <ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/groups" element={
-              <ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}>
-                <Groups />
-              </ProtectedRoute>
-            } />
-            <Route path="/vote" element={
-              <ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}>
-                <Vote />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}>
-                <Settings />
-              </ProtectedRoute>
-            } />
+            {/* User Routes */}
+            <Route path="/profile/me" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Profile /></ProtectedRoute>} />
+            <Route path="/groups" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Groups /></ProtectedRoute>} />
+            <Route path="/vote" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Vote /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
             
-            <Route path="/admin" element={
-              <ProtectedRoute roles={['admin', 'super_admin']}>
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin/lore" element={
-              <ProtectedRoute roles={['admin', 'super_admin']}>
-                <AdminLore />
-              </ProtectedRoute>
-            } />
+            {/* Admin Routes */}
+            <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/lore" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminLore /></ProtectedRoute>} />
+            <Route path="/admin/lore/add-era" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEra /></ProtectedRoute>} />
+            <Route path="/admin/lore/add-entry" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEntry /></ProtectedRoute>} />
+            <Route path="/admin/lore/edit-era/:eraId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEraPage /></ProtectedRoute>} />
+            <Route path="/admin/lore/edit-entry/:entryId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEntryPage /></ProtectedRoute>} />
           </Routes>
         </div>
       </AuthProvider>

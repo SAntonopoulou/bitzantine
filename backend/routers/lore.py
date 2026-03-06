@@ -5,10 +5,10 @@ from datetime import datetime
 import shutil
 import os
 import uuid
-from sqlalchemy import or_
+from sqlalchemy import or_, cast, String
 
 from database import get_session
-from models import LoreEra, LoreEntry, User, UserRole, EntryType
+from models import LoreEra, LoreEntry, User, UserRole, EntryType, LoreEraUpdate, LoreEntryUpdate
 from auth import get_current_active_user, RoleChecker
 
 router = APIRouter(
@@ -46,22 +46,19 @@ async def get_era(era_id: int, session: Session = Depends(get_session)):
 @router.post("/eras", response_model=LoreEra)
 async def create_era(era: LoreEra, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
     try:
-        # Convert string dates to datetime if necessary
         if isinstance(era.start_date, str):
             era.start_date = datetime.fromisoformat(era.start_date.replace('Z', '+00:00'))
         if isinstance(era.end_date, str):
             era.end_date = datetime.fromisoformat(era.end_date.replace('Z', '+00:00'))
 
-        # Ensure dates are timezone-naive or consistently handled if using SQLite
         if isinstance(era.start_date, datetime) and era.start_date.tzinfo:
             era.start_date = era.start_date.replace(tzinfo=None)
         if isinstance(era.end_date, datetime) and era.end_date.tzinfo:
             era.end_date = era.end_date.replace(tzinfo=None)
 
         if era.is_current_era:
-            # Find previous current era
             previous_current = session.exec(select(LoreEra).where(LoreEra.is_current_era == True)).first()
-            if previous_current:
+            if previous_current and previous_current.id != era.id:
                 previous_current.is_current_era = False
                 previous_current.end_date = datetime.utcnow()
                 session.add(previous_current)
@@ -75,8 +72,20 @@ async def create_era(era: LoreEra, session: Session = Depends(get_session), user
         return era
     except Exception as e:
         session.rollback()
-        print(f"Error creating era: {e}") # Add logging
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/eras/{era_id}", response_model=LoreEra)
+async def update_era(era_id: int, era_update: LoreEraUpdate, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    db_era = session.get(LoreEra, era_id)
+    if not db_era:
+        raise HTTPException(status_code=404, detail="Era not found")
+
+    era_data = era_update.dict(exclude_unset=True)
+    for key, value in era_data.items():
+        setattr(db_era, key, value)
+    
+    # Re-use the create logic to handle setting the current era
+    return await create_era(db_era, session, user)
 
 @router.get("/entries", response_model=List[LoreEntry])
 async def get_entries(
@@ -87,22 +96,18 @@ async def get_entries(
     search: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
-    query = select(LoreEntry)
-    
-    # Always join with LoreEra to enable sorting by era date
-    if LoreEra not in query.froms:
-        query = query.join(LoreEra)
+    query = select(LoreEntry).join(LoreEra, isouter=True)
 
     if era_id:
         query = query.where(LoreEntry.era_id == era_id)
     
     if search:
-        search_term = f"%{search.lower()}%"
+        search_term = f"%{search}%"
         query = query.where(
             or_(
                 LoreEntry.title.ilike(search_term),
                 LoreEra.name.ilike(search_term),
-                LoreEntry.tags.cast(str).ilike(search_term)
+                cast(LoreEntry.tags, String).ilike(search_term)
             )
         )
 
@@ -138,5 +143,23 @@ async def create_entry(entry: LoreEntry, session: Session = Depends(get_session)
         return entry
     except Exception as e:
         session.rollback()
-        print(f"Error creating entry: {e}") # Add logging
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/entries/{entry_id}", response_model=LoreEntry)
+async def update_entry(entry_id: int, entry_update: LoreEntryUpdate, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    db_entry = session.get(LoreEntry, entry_id)
+    if not db_entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    entry_data = entry_update.dict(exclude_unset=True)
+    for key, value in entry_data.items():
+        setattr(db_entry, key, value)
+    
+    try:
+        session.add(db_entry)
+        session.commit()
+        session.refresh(db_entry)
+        return db_entry
+    except Exception as e:
+        session.rollback()
         raise HTTPException(status_code=500, detail=str(e))

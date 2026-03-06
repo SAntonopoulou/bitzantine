@@ -153,40 +153,39 @@ export default function Lore() {
       console.error("Failed to fetch initial data", error);
     }
   };
-
-  const fetchEntries = useCallback(async (isNewSearch) => {
-    setLoading(true);
-    const currentPage = isNewSearch ? 0 : page;
-    try {
-      let url = `${API_URL}/lore/entries?skip=${currentPage * 10}&limit=10&sort_desc=${sortDesc}`;
-      if (debouncedSearchTerm) url += `&search=${debouncedSearchTerm}`;
-      
-      const res = await fetch(url);
-      const newEntries = await res.json();
-      
-      setEntries(prev => isNewSearch ? newEntries : [...prev, ...newEntries]);
-      setHasMore(newEntries.length === 10);
-    } catch (error) {
-      console.error("Failed to fetch entries", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, sortDesc, debouncedSearchTerm]);
-
+  
   useEffect(() => {
     fetchErasAndDots();
   }, []);
 
+  // Effect for resetting list on new search/sort
   useEffect(() => {
     setPage(0);
-    fetchEntries(true);
   }, [sortDesc, debouncedSearchTerm]);
 
+  // Effect for fetching data
   useEffect(() => {
-    if (page > 0) {
-      fetchEntries(false);
-    }
-  }, [page]);
+    const fetchEntries = async () => {
+      setLoading(true);
+      let url = `${API_URL}/lore/entries?skip=${page * 10}&limit=10&sort_desc=${sortDesc}`;
+      if (debouncedSearchTerm) {
+        url += `&search=${debouncedSearchTerm}`;
+      }
+      
+      try {
+        const res = await fetch(url);
+        const newEntries = await res.json();
+        setEntries(prev => page === 0 ? newEntries : [...prev, ...newEntries]);
+        setHasMore(newEntries.length === 10);
+      } catch (error) {
+        console.error("Failed to fetch entries", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEntries();
+  }, [page, sortDesc, debouncedSearchTerm]);
 
   // Setup scroll tracking observer
   useEffect(() => {

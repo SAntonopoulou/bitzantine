@@ -53,6 +53,10 @@ class Post(SQLModel, table=True):
     author_id: Optional[int] = Field(default=None, foreign_key="user.id")
     author: Optional[User] = Relationship(back_populates="posts")
 
+class EntryType(str, Enum):
+    CORE = "core"
+    EVOLVING = "evolving"
+
 class LoreEra(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -64,10 +68,6 @@ class LoreEra(SQLModel, table=True):
     is_current_era: bool = Field(default=False)
     
     entries: List["LoreEntry"] = Relationship(back_populates="era")
-
-class EntryType(str, Enum):
-    CORE = "core"
-    EVOLVING = "evolving"
 
 class LoreEntry(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -104,3 +104,21 @@ class Token(SQLModel):
 
 class TokenData(SQLModel):
     username: Optional[str] = None
+
+# Update Models
+class LoreEraUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color_hex: Optional[str] = None
+    image_url: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_current_era: Optional[bool] = None
+
+class LoreEntryUpdate(SQLModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    entry_type: Optional[EntryType] = None
+    image_url: Optional[str] = None
+    era_id: Optional[int] = None
+    tags: Optional[List[str]] = None

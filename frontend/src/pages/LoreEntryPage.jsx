@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Timeline from '../components/Timeline';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function LoreEntryPage() {
   const { entryId } = useParams();
+  const { user } = useAuth();
   const [entry, setEntry] = useState(null);
   const [eras, setEras] = useState([]);
   const [eraEntries, setEraEntries] = useState({});
@@ -46,6 +48,8 @@ export default function LoreEntryPage() {
     fetchPageData();
   }, [entryId]);
 
+  const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+
   if (loading) {
     return <div className="p-8 text-center text-stone-400">Loading entry...</div>;
   }
@@ -73,7 +77,14 @@ export default function LoreEntryPage() {
         />
 
         <div className="flex-1 md:ml-64 p-8">
-          <Link to="/lore" className="text-amber-600 hover:underline mb-6 block">&larr; Back to Lore Feed</Link>
+          <div className="flex justify-between items-center mb-6">
+            <Link to="/lore" className="text-amber-600 hover:underline">&larr; Back to Lore Feed</Link>
+            {isAdmin && (
+              <Link to={`/admin/lore/edit-entry/${entryId}`} className="bitz-btn">
+                Edit Entry
+              </Link>
+            )}
+          </div>
           
           <div className="bg-stone-800 rounded-lg shadow-lg p-8">
             {entry.image_url && (
