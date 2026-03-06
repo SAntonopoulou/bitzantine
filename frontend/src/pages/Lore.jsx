@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Search from '../components/Search';
 import Timeline from '../components/Timeline';
@@ -109,7 +109,7 @@ const LoreEntryCard = React.forwardRef(({ entry, eraColor }, ref) => {
 export default function Lore() {
   const [eras, setEras] = useState([]);
   const [entries, setEntries] = useState([]);
-  const [eraEntries, setEraEntries] = useState({});
+  const [allEraEntries, setAllEraEntries] = useState({}); // Unfiltered entries for timeline
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -144,12 +144,12 @@ export default function Lore() {
       const allEntriesRes = await fetch(`${API_URL}/lore/entries?limit=999`);
       const allEntriesData = await allEntriesRes.json();
       const groupedByEra = allEntriesData.reduce((acc, item) => {
-        const eraId = item.era_id;
+        const eraId = item.era_id || 'core-standalone'; // Group standalone core entries
         if (!acc[eraId]) acc[eraId] = [];
         acc[eraId].push(item);
         return acc;
       }, {});
-      setEraEntries(groupedByEra);
+      setAllEraEntries(groupedByEra);
     } catch (error) {
       console.error("Failed to fetch initial data", error);
     }
@@ -188,6 +188,21 @@ export default function Lore() {
 
     fetchEntries();
   }, [page, sortDesc, debouncedSearchTerm, coreOnly]);
+
+  // Filter timeline entries based on the coreOnly flag
+  const timelineEntries = useMemo(() => {
+    if (!coreOnly) {
+      return allEraEntries;
+    }
+    const filtered = {};
+    for (const eraId in allEraEntries) {
+      const eraEntries = allEraEntries[eraId].filter(entry => entry.entry_type === 'core');
+      if (eraEntries.length > 0) {
+        filtered[eraId] = eraEntries;
+      }
+    }
+    return filtered;
+  }, [coreOnly, allEraEntries]);
 
   // Setup scroll tracking observer
   useEffect(() => {
@@ -251,7 +266,7 @@ export default function Lore() {
       <div className="flex w-full max-w-7xl">
         <Timeline 
           eras={eras}
-          eraEntries={eraEntries}
+          eraEntries={timelineEntries}
           activeEntryId={activeEntryId}
           selectedEraId={null}
           onEraClick={handleEraClick}
