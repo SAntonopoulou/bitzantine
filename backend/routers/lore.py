@@ -5,6 +5,7 @@ from datetime import datetime
 import shutil
 import os
 import uuid
+from sqlalchemy import or_
 
 from database import get_session
 from models import LoreEra, LoreEntry, User, UserRole, EntryType
@@ -76,36 +77,33 @@ async def get_entries(
     limit: int = 10,
     sort_desc: bool = True,
     era_id: Optional[int] = None,
-    entry_type: Optional[str] = None,
-    tag: Optional[str] = None,
+    search: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
     query = select(LoreEntry).join(LoreEra)
     
     if era_id:
         query = query.where(LoreEntry.era_id == era_id)
-    if entry_type:
-        query = query.where(LoreEntry.entry_type == entry_type)
     
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                LoreEntry.title.ilike(search_term),
+                LoreEra.name.ilike(search_term),
+                # This is a simple tag search; for JSON it's more complex
+                # and might require specific DB functions. This is a basic LIKE search.
+                LoreEntry.tags.cast(str).ilike(search_term)
+            )
+        )
+
     if sort_desc:
         query = query.order_by(LoreEra.start_date.desc(), LoreEntry.created_at.desc())
     else:
         query = query.order_by(LoreEra.start_date.asc(), LoreEntry.created_at.asc())
         
-    # The main query for entries
     entries_query = query.offset(skip).limit(limit)
     entries = session.exec(entries_query).all()
-
-    # Post-filter for tags if a tag is specified
-    if tag:
-        # This is inefficient for large datasets, but works for this scenario.
-        # A better solution involves a many-to-many relationship with a Tag table or advanced JSON querying.
-        
-        # We need to fetch all entries that could potentially have the tag, then filter.
-        # This complicates pagination significantly. For now, we will apply the tag filter
-        # only on the already paginated results, which might lead to fewer than `limit` results.
-        # A more robust solution would require rethinking the query structure when a tag is present.
-        entries = [e for e in entries if tag in e.tags]
         
     return entries
 

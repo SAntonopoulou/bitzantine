@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import Search from '../components/Search';
+import Timeline from '../components/Timeline';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -29,8 +31,8 @@ const EraHeader = ({ era }) => (
   </div>
 );
 
-const LoreEntryCard = ({ entry, eraColor }) => {
-  const excerpt = useMemo(() => {
+const LoreEntryCard = React.forwardRef(({ entry, eraColor }, ref) => {
+  const excerpt = React.useMemo(() => {
     const cleanText = stripHtml(entry.content);
     return cleanText.length > 100 ? cleanText.substring(0, 100) + '...' : cleanText;
   }, [entry.content]);
@@ -38,6 +40,7 @@ const LoreEntryCard = ({ entry, eraColor }) => {
   return (
     <div 
       id={`entry-card-${entry.id}`}
+      ref={ref}
       className="bg-white rounded-lg shadow-md p-6 mb-6 border-l-4 transition-all hover:shadow-lg"
       style={{ borderLeftColor: eraColor || '#cbd5e1' }}
     >
@@ -73,134 +76,131 @@ const LoreEntryCard = ({ entry, eraColor }) => {
       </div>
     </div>
   );
-};
-
-const TimelineEra = ({ era, entries, activeEntryId, onEraClick, onEntryClick, isSelected }) => (
-  <div className="relative pl-6 group">
-    <div 
-      className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white transition-all cursor-pointer ${isSelected ? 'scale-125 ring-2 ring-offset-1' : ''}`}
-      style={{ backgroundColor: era.color_hex }}
-      onClick={() => onEraClick(era.id)}
-    />
-    <h3 
-      className={`font-semibold text-sm transition-colors cursor-pointer ${isSelected ? 'text-gray-900' : 'text-gray-500 group-hover:text-gray-700'}`}
-      onClick={() => onEraClick(era.id)}
-    >
-      {era.name}
-    </h3>
-    <span className="text-xs text-gray-400">
-      {new Date(era.start_date).getFullYear()}
-    </span>
-    <div className="mt-2 pl-1 space-y-2">
-      {entries.map(entry => (
-        <div 
-          key={entry.id} 
-          className="relative flex items-center cursor-pointer"
-          onClick={() => onEntryClick(entry.id)}
-        >
-          <div className={`w-2 h-2 rounded-full transition-all ${activeEntryId === entry.id ? 'bg-blue-500 scale-125' : 'bg-gray-300 group-hover:bg-gray-400'}`} />
-          <span className={`ml-2 text-xs transition-colors ${activeEntryId === entry.id ? 'text-blue-600 font-semibold' : 'text-gray-400 group-hover:text-gray-600'}`}>
-            {entry.title}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-);
+});
 
 export default function Lore() {
   const { user } = useAuth();
   const [eras, setEras] = useState([]);
   const [entries, setEntries] = useState([]);
-  const [eraEntries, setEraEntries] = useState({}); // Store entries per era for the timeline
-  const [loading, setLoading] = useState(true);
+  const [eraEntries, setEraEntries] = useState({});
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [sortDesc, setSortDesc] = useState(true);
-  const [selectedEraId, setSelectedEraId] = useState(null);
-  const [selectedTag, setSelectedTag] = useState(null);
   const [activeEntryId, setActiveEntryId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
-  const observer = useRef();
-  const entryRefs = useRef({});
+  const infiniteScrollObserver = useRef();
+  const scrollTrackingObserver = useRef();
+  const entryRefs = useRef(new Map());
 
-  const fetchEras = async () => {
-    try {
-      const res = await fetch(`${API_URL}/lore/eras`);
-      if (res.ok) {
-        const data = await res.json();
-        setEras(data);
-        // Fetch entries for each era for the timeline dots
-        data.forEach(era => fetchEntriesForEra(era.id));
+  const lastEntryElementRef = useCallback(node => {
+    if (loading) return;
+    if (infiniteScrollObserver.current) infiniteScrollObserver.current.disconnect();
+    infiniteScrollObserver.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
       }
+    });
+    if (node) infiniteScrollObserver.current.observe(node);
+  }, [loading, hasMore]);
+
+  const fetchErasAndDots = async () => {
+    try {
+      const erasRes = await fetch(`${API_URL}/lore/eras`);
+      const erasData = await erasRes.json();
+      setEras(erasData);
+
+      const allEntriesRes = await fetch(`${API_URL}/lore/entries?limit=999`);
+      const allEntriesData = await allEntriesRes.json();
+      const groupedByEra = allEntriesData.reduce((acc, item) => {
+        const eraId = item.era_id;
+        if (!acc[eraId]) acc[eraId] = [];
+        acc[eraId].push(item);
+        return acc;
+      }, {});
+      setEraEntries(groupedByEra);
     } catch (error) {
-      console.error("Failed to fetch eras", error);
+      console.error("Failed to fetch initial data", error);
     }
   };
 
-  const fetchEntriesForEra = async (eraId) => {
-    try {
-      const res = await fetch(`${API_URL}/lore/entries?era_id=${eraId}&limit=100`); // Fetch all for dots
-      if (res.ok) {
-        const data = await res.json();
-        setEraEntries(prev => ({ ...prev, [eraId]: data }));
-      }
-    } catch (error) {
-      console.error(`Failed to fetch entries for era ${eraId}`, error);
-    }
-  };
-
-  const fetchEntries = async (pageNum, reset = false) => {
+  const fetchEntries = useCallback(async (isNewSearch) => {
     setLoading(true);
+    const currentPage = isNewSearch ? 0 : page;
     try {
-      let url = `${API_URL}/lore/entries?skip=${pageNum * 5}&limit=5&sort_desc=${sortDesc}`;
-      if (selectedEraId) url += `&era_id=${selectedEraId}`;
-      if (selectedTag) url += `&tag=${selectedTag}`;
+      let url = `${API_URL}/lore/entries?skip=${currentPage * 10}&limit=10&sort_desc=${sortDesc}`;
+      if (searchQuery) url += `&search=${searchQuery}`;
       
       const res = await fetch(url);
-      if (res.ok) {
-        const newEntries = await res.json();
-        setHasMore(newEntries.length === 5);
-        setEntries(prev => reset ? newEntries : [...prev, ...newEntries]);
-        setPage(pageNum);
-      }
+      const newEntries = await res.json();
+      
+      setEntries(prev => isNewSearch ? newEntries : [...prev, ...newEntries]);
+      setHasMore(newEntries.length === 10);
     } catch (error) {
       console.error("Failed to fetch entries", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, sortDesc, searchQuery]);
 
   useEffect(() => {
-    fetchEras();
+    fetchErasAndDots();
   }, []);
 
   useEffect(() => {
-    fetchEntries(0, true);
-  }, [sortDesc, selectedEraId, selectedTag]);
+    setPage(0);
+    fetchEntries(true);
+  }, [sortDesc, searchQuery]);
 
-  // Intersection Observer for tracking active entry
   useEffect(() => {
-    const callback = (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const entryId = parseInt(entry.target.id.split('-')[2]);
-          setActiveEntryId(entryId);
+    if (page > 0) {
+      fetchEntries(false);
+    }
+  }, [page]);
+
+  // Setup scroll tracking observer
+  useEffect(() => {
+    const handleIntersect = (observedEntries) => {
+      const intersecting = observedEntries.find(e => e.isIntersecting);
+      if (intersecting) {
+        const entryId = parseInt(intersecting.target.id.split('-')[2]);
+        setActiveEntryId(entryId);
+      }
+    };
+
+    scrollTrackingObserver.current = new IntersectionObserver(handleIntersect, {
+      rootMargin: "-50% 0px -50% 0px",
+      threshold: 0
+    });
+
+    return () => scrollTrackingObserver.current?.disconnect();
+  }, []);
+
+  // Connect observer to refs
+  useEffect(() => {
+    const observer = scrollTrackingObserver.current;
+    if (!observer) return;
+
+    entryRefs.current.forEach((ref, id) => {
+      if (ref) {
+        observer.observe(ref);
+      }
+    });
+
+    return () => {
+      entryRefs.current.forEach((ref, id) => {
+        if (ref) {
+          observer.unobserve(ref);
         }
       });
     };
-    observer.current = new IntersectionObserver(callback, { rootMargin: '-50% 0px -50% 0px', threshold: 0 });
-
-    Object.values(entryRefs.current).forEach(ref => {
-      if (ref) observer.current.observe(ref);
-    });
-
-    return () => observer.current.disconnect();
   }, [entries]);
 
-  const loadMore = () => {
-    if (!loading && hasMore) {
-      fetchEntries(page + 1);
+  const handleEraClick = (eraId) => {
+    const element = document.getElementById(`era-header-${eraId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -211,11 +211,6 @@ export default function Lore() {
     }
   };
 
-  const sortedEras = useMemo(() => {
-    const erasCopy = [...eras];
-    return sortDesc ? erasCopy.reverse() : erasCopy;
-  }, [eras, sortDesc]);
-
   const getEraForEntry = (entry) => eras.find(e => e.id === entry.era_id);
 
   const shouldRenderEraHeader = (index) => {
@@ -225,84 +220,55 @@ export default function Lore() {
     return currentEntry.era_id !== prevEntry.era_id;
   };
 
-  const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
-
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Left Sidebar - Timeline */}
-      <div className="w-64 bg-white shadow-md hidden md:block fixed h-full overflow-y-auto p-6 z-10">
-        <h2 className="text-xl font-bold mb-6 text-gray-800">Timeline</h2>
-        <div className="relative border-l-2 border-gray-200 ml-3 space-y-8">
-          {sortedEras.map((era) => (
-            <TimelineEra
-              key={era.id}
-              era={era}
-              entries={eraEntries[era.id] || []}
-              activeEntryId={activeEntryId}
-              isSelected={selectedEraId === era.id}
-              onEraClick={() => setSelectedEraId(selectedEraId === era.id ? null : era.id)}
-              onEntryClick={handleEntryDotClick}
-            />
-          ))}
-        </div>
-        
-        {isAdmin && (
-           <Link to="/admin/lore" className="mt-8 block w-full text-center bg-gray-800 text-white py-2 rounded hover:bg-gray-700 transition">
-             Manage Lore
-           </Link>
-        )}
-      </div>
+      <Timeline 
+        eras={eras}
+        eraEntries={eraEntries}
+        activeEntryId={activeEntryId}
+        selectedEraId={null}
+        onEraClick={handleEraClick}
+        onEntryClick={handleEntryDotClick}
+        sortDesc={sortDesc}
+      />
 
-      {/* Main Content */}
       <div className="flex-1 md:ml-64 p-8 max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Guild Lore</h1>
-          <div className="flex gap-4">
-            <button 
-              onClick={() => setSortDesc(!sortDesc)}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              {sortDesc ? 'Newest First' : 'Oldest First'}
-            </button>
-            {(selectedEraId || selectedTag) && (
-              <button 
-                onClick={() => { setSelectedEraId(null); setSelectedTag(null); }}
-                className="text-sm text-red-600 hover:text-red-800"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {entries.map((entry, index) => {
-            const era = getEraForEntry(entry);
-            const showHeader = era && shouldRenderEraHeader(index);
-            
-            return (
-              <React.Fragment key={entry.id}>
-                {showHeader && <EraHeader era={era} />}
-                <div ref={el => entryRefs.current[entry.id] = el}>
-                  <LoreEntryCard entry={entry} eraColor={era ? era.color_hex : null} />
-                </div>
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {loading && <div className="text-center py-8">Loading lore...</div>}
+        <Search onSearchChange={setSearchQuery} />
         
-        {!loading && hasMore && (
-          <div className="text-center mt-8">
-            <button 
-              onClick={loadMore}
-              className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow"
-            >
-              Load More Stories
-            </button>
-          </div>
-        )}
+        <div className="flex justify-between items-center mb-8">
+          <div />
+          <button 
+            onClick={() => setSortDesc(!sortDesc)}
+            className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            {sortDesc ? 'Newest First' : 'Oldest First'}
+          </button>
+        </div>
+
+        {entries.map((entry, index) => {
+          const era = getEraForEntry(entry);
+          const showHeader = era && shouldRenderEraHeader(index);
+          const isLastElement = index === entries.length - 1;
+          
+          return (
+            <div key={entry.id} ref={isLastElement ? lastEntryElementRef : null}>
+              {showHeader && <EraHeader era={era} />}
+              <LoreEntryCard 
+                ref={node => {
+                  if (node) {
+                    entryRefs.current.set(entry.id, node);
+                  } else {
+                    entryRefs.current.delete(entry.id);
+                  }
+                }}
+                entry={entry} 
+                eraColor={era ? era.color_hex : null} 
+              />
+            </div>
+          );
+        })}
+        
+        {loading && <div className="text-center py-8">Loading more...</div>}
         
         {!loading && entries.length === 0 && (
           <div className="text-center py-12 text-gray-500">
