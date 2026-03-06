@@ -36,6 +36,13 @@ async def get_eras(session: Session = Depends(get_session)):
     eras = session.exec(select(LoreEra).order_by(LoreEra.start_date)).all()
     return eras
 
+@router.get("/eras/{era_id}", response_model=LoreEra)
+async def get_era(era_id: int, session: Session = Depends(get_session)):
+    era = session.get(LoreEra, era_id)
+    if not era:
+        raise HTTPException(status_code=404, detail="Era not found")
+    return era
+
 @router.post("/eras", response_model=LoreEra)
 async def create_era(era: LoreEra, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
     try:
@@ -80,8 +87,12 @@ async def get_entries(
     search: Optional[str] = None,
     session: Session = Depends(get_session)
 ):
-    query = select(LoreEntry).join(LoreEra)
+    query = select(LoreEntry)
     
+    # Always join with LoreEra to enable sorting by era date
+    if LoreEra not in query.froms:
+        query = query.join(LoreEra)
+
     if era_id:
         query = query.where(LoreEntry.era_id == era_id)
     
@@ -91,8 +102,6 @@ async def get_entries(
             or_(
                 LoreEntry.title.ilike(search_term),
                 LoreEra.name.ilike(search_term),
-                # This is a simple tag search; for JSON it's more complex
-                # and might require specific DB functions. This is a basic LIKE search.
                 LoreEntry.tags.cast(str).ilike(search_term)
             )
         )

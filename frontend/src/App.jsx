@@ -7,6 +7,7 @@ import Events from './pages/Events';
 import Government from './pages/Government';
 import Lore from './pages/Lore';
 import LoreEntryPage from './pages/LoreEntryPage';
+import EraPage from './pages/EraPage';
 import AdminLore from './pages/AdminLore';
 import Join from './pages/Join';
 import Register from './pages/Register';
@@ -37,7 +38,7 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-stone-900 text-stone-200">
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/government" element={<Government />} />
             <Route path="/lore" element={<Lore />} />
+            <Route path="/lore/eras/:eraId" element={<EraPage />} />
             <Route path="/lore/:entryId" element={<LoreEntryPage />} />
             <Route path="/join" element={<Join />} />
             <Route path="/register" element={<Register />} />

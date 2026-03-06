@@ -17,18 +17,15 @@ export default function LoreEntryPage() {
       try {
         setLoading(true);
         
-        // Fetch the specific entry
         const entryRes = await fetch(`${API_URL}/lore/entries/${entryId}`);
         if (!entryRes.ok) throw new Error('Lore entry not found');
         const entryData = await entryRes.json();
         setEntry(entryData);
 
-        // Fetch all eras for the timeline
         const erasRes = await fetch(`${API_URL}/lore/eras`);
         const erasData = await erasRes.json();
         setEras(erasData);
 
-        // Fetch all entries for timeline dots
         const allEntriesRes = await fetch(`${API_URL}/lore/entries?limit=999`);
         const allEntriesData = await allEntriesRes.json();
         const groupedByEra = allEntriesData.reduce((acc, item) => {
@@ -50,56 +47,59 @@ export default function LoreEntryPage() {
   }, [entryId]);
 
   if (loading) {
-    return <div className="p-8 text-center">Loading entry...</div>;
+    return <div className="p-8 text-center text-stone-400">Loading entry...</div>;
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-600">{error}</div>;
+    return <div className="p-8 text-center text-red-500">{error}</div>;
   }
 
   if (!entry) {
-    return <div className="p-8 text-center">Entry not found.</div>;
+    return <div className="p-8 text-center text-stone-500">Entry not found.</div>;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Timeline 
-        eras={eras}
-        eraEntries={eraEntries}
-        activeEntryId={parseInt(entryId)}
-        selectedEraId={entry.era_id}
-        onEraClick={() => {}} // No-op on this page
-        onEntryClick={() => {}} // No-op on this page
-        sortDesc={true} // Default sort for consistency
-      />
+    <div className="flex justify-center">
+      <div className="flex w-full max-w-7xl">
+        <Timeline 
+          eras={eras}
+          eraEntries={eraEntries}
+          activeEntryId={parseInt(entryId)}
+          selectedEraId={entry.era_id}
+          onEraClick={() => {}}
+          onEntryClick={() => {}}
+          sortDesc={true}
+          isMainLorePage={false}
+        />
 
-      <div className="flex-1 md:ml-64 p-8 max-w-4xl mx-auto">
-        <Link to="/lore" className="text-blue-600 hover:underline mb-6 block">&larr; Back to Lore Feed</Link>
-        
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          {entry.image_url && (
-            <img 
-              src={`${API_URL}${entry.image_url}`} 
-              alt={entry.title} 
-              className="w-full h-96 object-cover rounded-t-lg mb-6"
-            />
-          )}
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{entry.title}</h1>
-          <div className="flex justify-between items-center mb-6 text-sm text-gray-500">
-            <span>Posted on {new Date(entry.created_at).toLocaleDateString()}</span>
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${entry.entry_type === 'core' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-              {entry.entry_type}
-            </span>
-          </div>
+        <div className="flex-1 md:ml-64 p-8">
+          <Link to="/lore" className="text-amber-600 hover:underline mb-6 block">&larr; Back to Lore Feed</Link>
           
-          <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: entry.content }} />
-
-          <div className="flex flex-wrap gap-2 mt-8">
-            {entry.tags && entry.tags.map((tag, idx) => (
-              <span key={idx} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
-                #{tag}
+          <div className="bg-stone-800 rounded-lg shadow-lg p-8">
+            {entry.image_url && (
+              <img 
+                src={`${API_URL}${entry.image_url}`} 
+                alt={entry.title} 
+                className="w-full h-96 object-cover rounded-lg mb-6"
+              />
+            )}
+            <h1 className="text-4xl font-bold text-amber-500 mb-4">{entry.title}</h1>
+            <div className="flex justify-between items-center mb-6 text-sm text-stone-500">
+              <span>Posted on {new Date(entry.created_at).toLocaleDateString()}</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${entry.entry_type === 'core' ? 'bg-sky-900 text-sky-300' : 'bg-purple-900 text-purple-300'}`}>
+                {entry.entry_type}
               </span>
-            ))}
+            </div>
+            
+            <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: entry.content }} />
+
+            <div className="flex flex-wrap gap-2 mt-8">
+              {entry.tags && entry.tags.map((tag, idx) => (
+                <span key={idx} className="bg-stone-700 text-stone-300 px-3 py-1 rounded-full text-sm">
+                  #{tag}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
