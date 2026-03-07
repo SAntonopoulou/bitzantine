@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiClient } from '../apiClient';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -26,7 +26,7 @@ const AdminUserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await apiClient.get('/admin/users');
+            const response = await api.get('/admin/users');
             setUsers(response.data);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -35,7 +35,7 @@ const AdminUserManagement = () => {
 
     const fetchGroups = async () => {
         try {
-            const response = await apiClient.get('/groups');
+            const response = await api.get('/groups');
             setGroups(response.data);
         } catch (error) {
             console.error("Error fetching groups:", error);
@@ -90,7 +90,7 @@ const AdminUserManagement = () => {
 
     const handleStatusChange = async (user, newStatus) => {
         try {
-            await apiClient.put(`/admin/users/${user.id}/status`, { is_active: newStatus });
+            await api.put(`/admin/users/${user.id}/status`, { is_active: newStatus });
             fetchUsers();
         } catch (error) {
             console.error("Error updating user status:", error);
@@ -99,7 +99,7 @@ const AdminUserManagement = () => {
 
     const handleRoleChange = async (newRole) => {
         try {
-            await apiClient.put(`/admin/users/${selectedUser.id}/role`, { role: newRole });
+            await api.put(`/admin/users/${selectedUser.id}/role`, { role: newRole });
             fetchUsers();
             setIsRoleModalOpen(false);
         } catch (error) {
@@ -115,10 +115,10 @@ const AdminUserManagement = () => {
             const toRemove = [...currentGroupIds].filter(groupId => !selectedGroups.has(groupId));
 
             for (const groupId of toAdd) {
-                await apiClient.post(`/admin/users/${selectedUser.id}/assign-group`, { group_id: groupId });
+                await api.post(`/admin/users/${selectedUser.id}/assign-group`, { group_id: groupId });
             }
             for (const groupId of toRemove) {
-                await apiClient.delete(`/admin/users/${selectedUser.id}/remove-group/${groupId}`);
+                await api.delete(`/admin/users/${selectedUser.id}/remove-group/${groupId}`);
             }
             
             fetchUsers();
@@ -130,7 +130,7 @@ const AdminUserManagement = () => {
 
     const handleDeleteUser = async () => {
         try {
-            await apiClient.delete(`/admin/users/${selectedUser.id}`);
+            await api.delete(`/admin/users/${selectedUser.id}`);
             fetchUsers();
             setIsDeleteModalOpen(false);
         } catch (error) {

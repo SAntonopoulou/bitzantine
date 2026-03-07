@@ -31,6 +31,7 @@ import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
+import EditProfile from './pages/EditProfile';
 import Groups from './pages/Groups';
 import GroupDetail from './pages/GroupDetail';
 import GroupManagement from './pages/GroupManagement';
@@ -74,9 +75,10 @@ export default function App() {
               <Route path="/join" element={<Join />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/profile/:username" element={<Profile />} />
               
               {/* User Routes */}
-              <Route path="/profile/me" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Profile /></ProtectedRoute>} />
+              <Route path="/profile/edit" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><EditProfile /></ProtectedRoute>} />
               <Route path="/groups" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Groups /></ProtectedRoute>} />
               <Route path="/groups/:id" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupDetail /></ProtectedRoute>} />
               <Route path="/groups/:id/manage" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupManagement /></ProtectedRoute>} />

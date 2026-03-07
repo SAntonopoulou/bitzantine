@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
 from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import events, groups, lore, announcements, admin_events, admin, admin_users
+from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users
 from typing import List
 import os
 
@@ -65,6 +65,7 @@ app.include_router(announcements.router)
 app.include_router(admin_events.router)
 app.include_router(admin.router)
 app.include_router(admin_users.router)
+app.include_router(users.router)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):

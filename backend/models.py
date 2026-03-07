@@ -1,7 +1,7 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlmodel import SQLModel, Field, Relationship
 from enum import Enum as PyEnum
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import JSON, Column
 
 # --- Enums ---
@@ -65,6 +65,24 @@ class Profile(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    
+    # Identity
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    
+    # Gaming Info
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None # Text
+    typical_playtime: Optional[str] = None
+    
+    # JSON Fields
+    social_links: Dict = Field(default={}, sa_column=Column(JSON))
+    privacy_settings: Dict = Field(default={}, sa_column=Column(JSON))
+    
     user_id: int = Field(foreign_key="user.id")
     user: Optional["User"] = Relationship(back_populates="profile")
 
@@ -181,8 +199,44 @@ class UserGroupRead(SQLModel):
 class UserReadMe(UserRead):
     groups: List[UserGroupRead] = []
 
+class ProfileRead(SQLModel):
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    typical_playtime: Optional[str] = None
+    social_links: Dict = {}
+    privacy_settings: Dict = {}
+
 class UserReadWithProfile(UserRead):
-    profile: Optional[Profile] = None
+    profile: Optional[ProfileRead] = None
+
+class UserPublicProfile(SQLModel):
+    id: int
+    username: str
+    avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    
+    # Optional fields based on privacy
+    bio: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    discord_username: Optional[str] = None
+    email: Optional[str] = None
+    social_links: Optional[Dict] = None
+    
+    groups: List[UserGroupRead] = []
+    led_groups: List[UserGroupRead] = []
 
 class EventRSVPRead(EventRSVPBase):
     id: int
@@ -233,3 +287,16 @@ class LoreEntryUpdate(SQLModel):
     image_url: Optional[str] = None
     era_id: Optional[int] = None
     tags: Optional[List[str]] = None
+
+class ProfileUpdate(SQLModel):
+    bio: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    typical_playtime: Optional[str] = None
+    social_links: Optional[Dict] = None
+    privacy_settings: Optional[Dict] = None
+    username_color: Optional[str] = None

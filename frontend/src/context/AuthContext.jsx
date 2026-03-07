@@ -1,63 +1,52 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { api } from '../api';
 
 const AuthContext = createContext(null);
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUser = async () => {
+    try {
+      const response = await api.get('/users/me');
+      setUser(response.data);
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+      localStorage.removeItem('token');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      fetch(`${API_URL}/users/me`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-      .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch user'))
-      .then(userData => setUser(userData))
-      .catch(() => {
-        localStorage.removeItem('token');
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
+      fetchUser();
     } else {
       setLoading(false);
     }
   }, []);
 
   const login = async (username, password) => {
-    const response = await fetch(`${API_URL}/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ username, password })
-    });
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
 
-    if (response.ok) {
-      const { access_token } = await response.json();
+    try {
+      const response = await api.post('/token', formData, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      });
+      
+      const { access_token } = response.data;
       localStorage.setItem('token', access_token);
       
-      // This is the crucial part: we must fetch the user data *after* the token is set.
-      // The original code had a race condition.
-      try {
-        const userResponse = await fetch(`${API_URL}/users/me`, {
-          headers: { 'Authorization': `Bearer ${access_token}` }
-        });
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setUser(userData);
-        } else {
-          throw new Error('Failed to fetch user data after login.');
-        }
-      } catch (error) {
-        // If fetching user fails, logout to clear inconsistent state
-        logout();
-        throw error;
-      }
-
-    } else {
-      const errorData = await response.json();
-      throw new Error(errorData.detail || 'Login failed.');
+      // Re-fetch user data
+      await fetchUser();
+      
+    } catch (error) {
+      throw new Error(error.response?.data?.detail || 'Login failed.');
     }
   };
 
@@ -66,8 +55,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    await fetchUser();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

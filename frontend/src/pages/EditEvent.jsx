@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import EventForm from '../components/EventForm';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { api } from '../api';
 
 export default function EditEvent() {
   const { id } = useParams();
@@ -15,20 +14,16 @@ export default function EditEvent() {
     const fetchEventData = async () => {
       try {
         const [eventRes, templatesRes, usersRes, groupsRes] = await Promise.all([
-          fetch(`${API_URL}/events/${id}`),
-          fetch(`${API_URL}/admin/events/templates`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-          fetch(`${API_URL}/admin/users`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }),
-          fetch(`${API_URL}/admin/groups`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+          api.get(`/events/${id}`),
+          api.get(`/admin/events/templates`),
+          api.get(`/admin/users`),
+          api.get(`/admin/groups`)
         ]);
-        const eventData = await eventRes.json();
-        const templatesData = await templatesRes.json();
-        const usersData = await usersRes.json();
-        const groupsData = await groupsRes.json();
         
-        setEvent(eventData.event);
-        setTemplates(templatesData);
-        setUsers(usersData);
-        setGroups(groupsData);
+        setEvent(eventRes.data.event);
+        setTemplates(templatesRes.data);
+        setUsers(usersRes.data);
+        setGroups(groupsRes.data);
       } catch (error) {
         console.error("Failed to fetch event data", error);
       }

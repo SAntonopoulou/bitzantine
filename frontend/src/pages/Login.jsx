@@ -14,7 +14,7 @@ export default function Login() {
     setError('');
     try {
       await login(username, password);
-      navigate('/profile/me');
+      navigate(`/profile/${username}`);
     } catch (err) {
       setError(err.message || 'Failed to log in. Please check your credentials.');
     }

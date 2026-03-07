@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../apiClient';
+import { api } from '../api';
 
 export default function Register() {
   const [username, setUsername] = useState('');
@@ -11,7 +11,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await apiClient.post('/users', { username, email, password });
+      const res = await api.post('/users', { username, email, password });
       if (res.status === 200 || res.status === 201) {
         navigate('/login');
       } else {

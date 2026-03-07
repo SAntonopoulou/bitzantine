@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiClient, API_URL } from '../apiClient';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -21,7 +21,7 @@ export default function GroupDetail() {
 
   const fetchGroup = async () => {
     try {
-      const res = await apiClient.get(`/groups/${id}`);
+      const res = await api.get(`/groups/${id}`);
       setGroupData(res.data);
     } catch (err) {
       setError('Failed to load group details');
@@ -32,7 +32,7 @@ export default function GroupDetail() {
 
   const handleApply = async () => {
     try {
-      await apiClient.post(`/groups/${id}/apply`);
+      await api.post(`/groups/${id}/apply`);
       showNotification('Application submitted successfully!', 'success');
       fetchGroup();
     } catch (err) {
@@ -42,7 +42,7 @@ export default function GroupDetail() {
 
   const confirmLeave = async () => {
     try {
-      await apiClient.delete(`/groups/${id}/members/${currentUser.id}`);
+      await api.delete(`/groups/${id}/members/${currentUser.id}`);
       showNotification('You have left the group', 'success');
       navigate('/groups'); // Redirect to groups list
     } catch (err) {
@@ -72,7 +72,7 @@ export default function GroupDetail() {
       <div className="bg-stone-800 rounded-2xl shadow-2xl overflow-hidden border border-stone-700">
         {group.image_url && (
           <div className="h-64 w-full overflow-hidden">
-            <img src={`${API_URL}${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
+            <img src={`http://localhost:8000${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
           </div>
         )}
         
@@ -99,7 +99,7 @@ export default function GroupDetail() {
             </div>
             
             {!isMember && !hasPending && currentUser?.role !== 'user' && (
-              <button onClick={handleApply} className="bitz-btn">Apply to Join</button>
+              <button onClick={handleApply} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition-colors">Apply to Join</button>
             )}
             {hasPending && (
               <span className="bg-yellow-900/50 text-yellow-200 px-4 py-2 rounded-lg border border-yellow-700">Application Pending</span>
@@ -116,7 +116,7 @@ export default function GroupDetail() {
               {leaderUser ? (
                 <div className="flex items-center gap-4">
                   {leaderUser.profile?.avatar_url ? (
-                    <img src={`${API_URL}${leaderUser.profile.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
+                    <img src={`http://localhost:8000${leaderUser.profile.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
                       {leaderUser.username[0].toUpperCase()}
@@ -139,7 +139,7 @@ export default function GroupDetail() {
                   <div key={m.user.id} className="flex items-center justify-between bg-stone-800 p-3 rounded-lg border border-stone-700">
                     <div className="flex items-center gap-3">
                       {m.user.profile?.avatar_url ? (
-                        <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                        <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                           {m.user.username[0].toUpperCase()}
@@ -165,7 +165,7 @@ export default function GroupDetail() {
               {members.filter(m => m.status === 'approved').map(m => (
                 <div key={m.user.id} className="bg-stone-900/50 p-4 rounded-xl border border-stone-700 text-center group relative">
                   {m.user.profile?.avatar_url ? (
-                    <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
+                    <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
                   ) : (
                     <div className="w-16 h-16 bg-stone-700 rounded-full mx-auto mb-3 flex items-center justify-center text-amber-500 font-bold text-xl">
                       {m.user.username[0].toUpperCase()}

@@ -4,8 +4,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import { useNavigate } from 'react-router-dom';
 import EventList from '../components/EventList';
 import WeeklyEventList from '../components/WeeklyEventList';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { api } from '../api';
 
 export default function Events() {
   const [view, setView] = useState('listAll'); // Default to the infinite scroll list view
@@ -13,10 +12,9 @@ export default function Events() {
   const navigate = useNavigate();
 
   const fetchAllEventsForCalendar = () => {
-    fetch(`${API_URL}/events?limit=200`)
-      .then(res => res.json())
-      .then(data => {
-        const formattedEvents = data.map(event => ({
+    api.get('/events?limit=200')
+      .then(res => {
+        const formattedEvents = res.data.map(event => ({
           id: event.id,
           title: event.title,
           start: event.date,
