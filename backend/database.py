@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# This is the single source of truth for the database file name.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
 
 # Handle postgresql:// vs postgres:// for SQLAlchemy

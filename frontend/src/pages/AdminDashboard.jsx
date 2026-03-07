@@ -28,6 +28,14 @@ export default function AdminDashboard() {
             Manage Announcements
           </Link>
         </div>
+
+        <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
+          <h2 className="text-xl font-bold text-amber-400 mb-4">Events Management</h2>
+          <p className="text-stone-400 mb-6 flex-grow">Create, edit, and manage guild events and templates.</p>
+          <Link to="/admin/events" className="bitz-btn w-full text-center mt-auto">
+            Manage Events
+          </Link>
+        </div>
       </div>
     </div>
   );

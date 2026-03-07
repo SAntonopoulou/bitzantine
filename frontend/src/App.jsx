@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import Announcements from './pages/Announcements';
 import AnnouncementDetail from './pages/AnnouncementDetail';
 import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 import Government from './pages/Government';
 import Lore from './pages/Lore';
 import LoreEntryPage from './pages/LoreEntryPage';
@@ -18,6 +19,11 @@ import EditEntryPage from './pages/EditEntryPage';
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import AddAnnouncement from './pages/AddAnnouncement';
 import EditAnnouncement from './pages/EditAnnouncement';
+import AdminEvents from './pages/AdminEvents';
+import AddEvent from './pages/AddEvent';
+import EditEvent from './pages/EditEvent';
+import AddEventTemplate from './pages/AddEventTemplate';
+import EditEventTemplate from './pages/EditEventTemplate';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -54,6 +60,7 @@ export default function App() {
             <Route path="/announcements" element={<Announcements />} />
             <Route path="/announcements/:id" element={<AnnouncementDetail />} />
             <Route path="/events" element={<Events />} />
+            <Route path="/events/:id" element={<EventDetail />} />
             <Route path="/government" element={<Government />} />
             <Route path="/lore" element={<Lore />} />
             <Route path="/lore/eras/:eraId" element={<EraPage />} />
@@ -78,6 +85,11 @@ export default function App() {
             <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminAnnouncements /></ProtectedRoute>} />
             <Route path="/admin/announcements/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddAnnouncement /></ProtectedRoute>} />
             <Route path="/admin/announcements/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditAnnouncement /></ProtectedRoute>} />
+            <Route path="/admin/events" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminEvents /></ProtectedRoute>} />
+            <Route path="/admin/events/add" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AddEvent /></ProtectedRoute>} />
+            <Route path="/admin/events/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><EditEvent /></ProtectedRoute>} />
+            <Route path="/admin/events/templates/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEventTemplate /></ProtectedRoute>} />
+            <Route path="/admin/events/templates/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEventTemplate /></ProtectedRoute>} />
           </Routes>
         </div>
       </AuthProvider>

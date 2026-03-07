@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
+import Notification from '../components/Notification';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY || 'no-api-key';
@@ -14,6 +15,7 @@ export default function AddEra() {
   const [isCurrentEra, setIsCurrentEra] = useState(false);
   const [eraStartDate, setEraStartDate] = useState('');
   const [eraEndDate, setEraEndDate] = useState('');
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   const handleImageUpload = async (file) => {
     if (!file) return null;
@@ -29,6 +31,7 @@ export default function AddEra() {
       if (res.ok) return (await res.json()).url;
     } catch (error) {
       console.error("Image upload failed", error);
+      setNotification({ message: 'Image upload failed.', type: 'error' });
     }
     return null;
   };
@@ -58,19 +61,20 @@ export default function AddEra() {
       });
 
       if (res.ok) {
-        alert('Era created successfully!');
-        navigate('/admin/lore');
+        setNotification({ message: 'Era created successfully!', type: 'success' });
+        setTimeout(() => navigate('/admin/lore'), 2000);
       } else {
         const errorData = await res.json();
-        alert(`Failed to create era: ${errorData.detail || 'Unknown error'}`);
+        setNotification({ message: `Failed to create era: ${errorData.detail || 'Unknown error'}`, type: 'error' });
       }
     } catch (error) {
-      alert("Error creating era. Check console for details.");
+      setNotification({ message: "Error creating era. Check console for details.", type: 'error' });
     }
   };
 
   return (
     <div className="p-8 max-w-4xl mx-auto text-stone-200">
+      <Notification message={notification.message} type={notification.type} onDismiss={() => setNotification({ message: '', type: '' })} />
       <Link to="/admin/lore" className="text-amber-600 hover:underline mb-8 block">&larr; Back to Lore Management</Link>
       <h1 className="text-3xl font-bold mb-8 text-amber-500">Add New Era</h1>
       

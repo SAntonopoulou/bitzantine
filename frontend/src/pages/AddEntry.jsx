@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
+import Notification from '../components/Notification';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY || 'no-api-key';
@@ -14,12 +15,16 @@ export default function AddEntry() {
   const [selectedEraId, setSelectedEraId] = useState('');
   const [entryImage, setEntryImage] = useState(null);
   const [tags, setTags] = useState('');
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   useEffect(() => {
     fetch(`${API_URL}/lore/eras`)
       .then(res => res.json())
       .then(data => setEras(data))
-      .catch(err => console.error("Failed to fetch eras", err));
+      .catch(err => {
+        console.error("Failed to fetch eras", err);
+        setNotification({ message: 'Failed to load eras.', type: 'error' });
+      });
   }, []);
 
   const handleImageUpload = async (file) => {
@@ -36,6 +41,7 @@ export default function AddEntry() {
       if (res.ok) return (await res.json()).url;
     } catch (error) {
       console.error("Image upload failed", error);
+      setNotification({ message: 'Image upload failed.', type: 'error' });
     }
     return null;
   };
@@ -64,19 +70,20 @@ export default function AddEntry() {
       });
 
       if (res.ok) {
-        alert('Entry created successfully!');
-        navigate('/admin/lore');
+        setNotification({ message: 'Entry created successfully!', type: 'success' });
+        setTimeout(() => navigate('/admin/lore'), 2000);
       } else {
         const errorData = await res.json();
-        alert(`Failed to create entry: ${errorData.detail || 'Unknown error'}`);
+        setNotification({ message: `Failed to create entry: ${errorData.detail || 'Unknown error'}`, type: 'error' });
       }
     } catch (error) {
-      alert("Error creating entry. Check console for details.");
+      setNotification({ message: "Error creating entry. Check console for details.", type: 'error' });
     }
   };
 
   return (
     <div className="p-8 max-w-4xl mx-auto text-stone-200">
+      <Notification message={notification.message} type={notification.type} onDismiss={() => setNotification({ message: '', type: '' })} />
       <Link to="/admin/lore" className="text-amber-600 hover:underline mb-8 block">&larr; Back to Lore Management</Link>
       <h1 className="text-3xl font-bold mb-8 text-amber-500">Add New Lore Entry</h1>
       

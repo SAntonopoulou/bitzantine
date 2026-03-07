@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from database import create_db_and_tables, get_session, engine
 from models import User, UserCreate, UserRead, Token, UserRole
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import events, groups, lore, announcements
+from routers import events, groups, lore, announcements, admin_events, admin
 from typing import List
 import os
 
@@ -42,6 +42,7 @@ origins = [
     "http://localhost:8000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    "http://localhost:8081", # Add the new frontend port
 ]
 
 app.add_middleware(
@@ -60,6 +61,8 @@ app.include_router(events.router)
 app.include_router(groups.router)
 app.include_router(lore.router)
 app.include_router(announcements.router)
+app.include_router(admin_events.router)
+app.include_router(admin.router)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
@@ -76,6 +79,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Inactive user. Please wait for admin approval.",
         )
     access_token = create_access_token(data={"sub": user.username})
+    session.commit()
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/users", response_model=UserRead)

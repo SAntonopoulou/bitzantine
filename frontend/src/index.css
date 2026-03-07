@@ -23,7 +23,77 @@
   background-clip: padding-box;
 }
 
-/* Style your items */
-.my-masonry-grid_column > div { /* change div to reference your elements you put in <Masonry> */
+.my-masonry-grid_column > div {
   margin-bottom: 30px;
+}
+
+/* FullCalendar Dark Theme Overrides */
+.fc-theme {
+  --fc-border-color: theme('colors.stone.700');
+  --fc-daygrid-event-dot-width: 8px;
+  --fc-list-event-dot-width: 12px;
+  --fc-event-bg-color: theme('colors.amber.700');
+  --fc-event-border-color: theme('colors.amber.800');
+  --fc-event-text-color: theme('colors.amber.50');
+  --fc-page-bg-color: theme('colors.stone.800');
+  --fc-neutral-bg-color: theme('colors.stone.800');
+}
+
+.fc .fc-toolbar.fc-header-toolbar {
+  @apply mb-6 text-stone-300;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-2xl font-bold text-amber-500;
+}
+
+.fc .fc-button {
+  @apply bg-stone-700 text-stone-300 border-stone-600 hover:bg-stone-600;
+}
+
+.fc .fc-button-primary:disabled {
+  @apply bg-stone-800 text-stone-600;
+}
+
+.fc .fc-daygrid-day-number, .fc .fc-col-header-cell-cushion {
+  @apply text-stone-400;
+}
+
+.fc .fc-day-today {
+  @apply bg-stone-900/50;
+}
+
+/* List View Customizations */
+.fc-list-day-cushion, .fc-list-table td {
+  @apply bg-stone-800;
+}
+
+.fc-list-day-text, .fc-list-day-side-text {
+    @apply text-amber-500 text-lg;
+}
+
+.fc-list-event-title, .fc-list-event-time {
+    @apply hidden; /* Hide default event title/time in list view */
+}
+
+.fc-list-table {
+    @apply border-separate;
+    border-spacing: 0 1rem; /* Add vertical spacing between event rows */
+}
+
+.fc-list-event-graphic {
+    @apply hidden; /* Hide the default dot */
+}
+
+/* Make our custom card container take up the full width */
+.fc-list-event-title a {
+  display: contents;
+}
+
+.fc-list-event-title .fc-event-card-container {
+  width: 100%;
+}
+
+.fc-v-event {
+    @apply bg-stone-800 border-stone-700;
 }

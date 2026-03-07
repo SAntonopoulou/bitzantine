@@ -1,26 +1,84 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import { useNavigate } from 'react-router-dom';
+import EventList from '../components/EventList';
+import WeeklyEventList from '../components/WeeklyEventList';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function Events() {
-  const [events, setEvents] = useState([]);
+  const [view, setView] = useState('listAll'); // Default to the infinite scroll list view
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const navigate = useNavigate();
+
+  const fetchAllEventsForCalendar = () => {
+    fetch(`${API_URL}/events?limit=200`)
+      .then(res => res.json())
+      .then(data => {
+        const formattedEvents = data.map(event => ({
+          id: event.id,
+          title: event.title,
+          start: event.date,
+          end: event.end_time,
+        }));
+        setCalendarEvents(formattedEvents);
+      })
+      .catch(err => console.error("Failed to fetch events for calendar", err));
+  };
 
   useEffect(() => {
-    fetch('/api/events')
-      .then(res => res.json())
-      .then(data => setEvents(data));
-  }, []);
+    // Fetch events only when the calendar view is active
+    if (view === 'dayGridMonth') {
+      fetchAllEventsForCalendar();
+    }
+  }, [view]);
+
+  const handleEventClick = (clickInfo) => {
+    navigate(`/events/${clickInfo.event.id}`);
+  };
+
+  const renderView = () => {
+    switch (view) {
+      case 'listAll':
+        return <EventList />;
+      case 'weekly':
+        return <WeeklyEventList />;
+      case 'dayGridMonth':
+        return (
+          <div className="fc-theme">
+            <FullCalendar
+              key={view}
+              plugins={[dayGridPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: ''
+              }}
+              events={calendarEvents}
+              eventClick={handleEventClick}
+              height="auto"
+              noEventsContent="No events to display"
+            />
+          </div>
+        );
+      default:
+        return <EventList />;
+    }
+  };
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Upcoming Events</h1>
-      <div className="grid gap-6">
-        {events.map(event => (
-          <div key={event.id} className="bg-white p-6 rounded shadow-md">
-            <h2 className="text-xl font-bold mb-2">{event.title}</h2>
-            <p className="text-gray-600 mb-4">{event.description}</p>
-            <span className="text-sm text-gray-500">{new Date(event.date).toLocaleDateString()}</span>
-          </div>
-        ))}
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold text-amber-500">Events</h1>
+        <div className="flex gap-2 p-1 bg-stone-800 rounded-lg">
+          <button onClick={() => setView('listAll')} className={`px-4 py-2 text-sm rounded-md ${view === 'listAll' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>List</button>
+          <button onClick={() => setView('weekly')} className={`px-4 py-2 text-sm rounded-md ${view === 'weekly' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Weekly</button>
+          <button onClick={() => setView('dayGridMonth')} className={`px-4 py-2 text-sm rounded-md ${view === 'dayGridMonth' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Calendar</button>
+        </div>
       </div>
+      {renderView()}
     </div>
   );
 }

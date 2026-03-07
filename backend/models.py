@@ -1,16 +1,56 @@
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, Relationship
-from enum import Enum
+from enum import Enum as PyEnum
 from datetime import datetime
 from sqlalchemy import JSON, Column
 
-class UserRole(str, Enum):
+# --- Enums ---
+class UserRole(str, PyEnum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     MODERATOR = "moderator"
     OFFICER = "officer"
     CITIZEN = "citizen"
     USER = "user"
+
+class RSVPStatus(str, PyEnum):
+    ATTENDING = "attending"
+    INTERESTED = "interested"
+    NOT_ATTENDING = "not_attending"
+
+class EntryType(str, PyEnum):
+    CORE = "core"
+    EVOLVING = "evolving"
+
+# --- Base Models ---
+class EventBase(SQLModel):
+    title: str
+    description: str
+    date: datetime
+    end_time: Optional[datetime] = None
+    timezone: str = Field(default="UTC")
+    featured_image_url: Optional[str] = None
+    host_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    host_group_id: Optional[int] = Field(default=None, foreign_key="group.id")
+    min_participants: Optional[int] = None
+    max_participants: Optional[int] = None
+    tags: List[str] = Field(default=[], sa_column=Column(JSON))
+    category: Optional[str] = None
+    recurrence_rule: Optional[str] = None
+    is_template: bool = Field(default=False)
+
+class EventRSVPBase(SQLModel):
+    user_id: int = Field(foreign_key="user.id")
+    event_id: int = Field(foreign_key="event.id")
+    status: RSVPStatus
+
+# --- Table Models ---
+class Profile(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    user_id: int = Field(foreign_key="user.id")
+    user: Optional["User"] = Relationship(back_populates="profile")
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -21,28 +61,37 @@ class User(SQLModel, table=True):
     role: UserRole = Field(default=UserRole.USER)
     is_active: bool = Field(default=False)
     
-    profile: Optional["Profile"] = Relationship(back_populates="user")
+    profile: Optional[Profile] = Relationship(back_populates="user")
     announcements: List["Announcement"] = Relationship(back_populates="author")
     lore_entries: List["LoreEntry"] = Relationship(back_populates="author")
+    rsvps: List["EventRSVP"] = Relationship(back_populates="user")
 
-class Profile(SQLModel, table=True):
+class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    bio: Optional[str] = None
-    avatar_url: Optional[str] = None
-    user_id: int = Field(foreign_key="user.id")
-    user: Optional[User] = Relationship(back_populates="profile")
+    host: Optional[User] = Relationship()
+    rsvps: List["EventRSVP"] = Relationship(back_populates="event", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+class EventRSVP(EventRSVPBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user: "User" = Relationship(back_populates="rsvps")
+    event: "Event" = Relationship(back_populates="rsvps")
+
+class EventTemplate(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    title: str
+    description: str
+    featured_image_url: Optional[str] = None
+    min_participants: Optional[int] = None
+    max_participants: Optional[int] = None
+    tags: List[str] = Field(default=[], sa_column=Column(JSON))
+    category: Optional[str] = None
 
 class Group(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     description: str
     type: str
-
-class Event(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    title: str
-    date: datetime
-    description: str
 
 class Announcement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -52,12 +101,7 @@ class Announcement(SQLModel, table=True):
     tags: List[str] = Field(default=[], sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     author_id: Optional[int] = Field(default=None, foreign_key="user.id")
-    
     author: Optional[User] = Relationship(back_populates="announcements")
-
-class EntryType(str, Enum):
-    CORE = "core"
-    EVOLVING = "evolving"
 
 class LoreEra(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -68,7 +112,6 @@ class LoreEra(SQLModel, table=True):
     start_date: datetime
     end_date: Optional[datetime] = None
     is_current_era: bool = Field(default=False)
-    
     entries: List["LoreEntry"] = Relationship(back_populates="era", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class LoreEntry(SQLModel, table=True):
@@ -81,11 +124,10 @@ class LoreEntry(SQLModel, table=True):
     era_id: Optional[int] = Field(default=None, foreign_key="loreera.id")
     tags: List[str] = Field(default=[], sa_column=Column(JSON))
     user_id: int = Field(foreign_key="user.id")
-    
     era: Optional[LoreEra] = Relationship(back_populates="entries")
     author: Optional[User] = Relationship(back_populates="lore_entries")
 
-# Pydantic models for requests/responses
+# --- API Models (Pydantic) ---
 class UserCreate(SQLModel):
     username: str
     email: str
@@ -100,6 +142,25 @@ class UserRead(SQLModel):
     role: UserRole
     is_active: bool
 
+class UserReadWithProfile(UserRead):
+    profile: Optional[Profile] = None
+
+class EventRSVPRead(EventRSVPBase):
+    id: int
+    user: UserReadWithProfile
+
+class EventRead(EventBase):
+    id: int
+
+class EventReadWithDetails(EventRead):
+    rsvps: List[EventRSVPRead] = []
+    host: Optional[UserReadWithProfile] = None
+
+class EventDetailResponse(SQLModel):
+    event: EventReadWithDetails
+    previous_event_id: Optional[int] = None
+    next_event_id: Optional[int] = None
+
 class Token(SQLModel):
     access_token: str
     token_type: str
@@ -107,7 +168,10 @@ class Token(SQLModel):
 class TokenData(SQLModel):
     username: Optional[str] = None
 
-# Update Models
+# --- Update Models ---
+class EventUpdate(EventBase):
+    pass
+
 class AnnouncementUpdate(SQLModel):
     title: Optional[str] = None
     content: Optional[str] = None

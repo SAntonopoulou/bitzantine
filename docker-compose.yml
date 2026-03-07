@@ -9,7 +9,7 @@ services:
       - ./backend:/app
       - ./static:/app/static
     environment:
-      - DATABASE_URL=sqlite:///./database_v2.db
+      - DATABASE_URL=sqlite:///./database.db
     depends_on:
       - db
 
