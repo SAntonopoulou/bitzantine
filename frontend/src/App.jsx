@@ -24,6 +24,7 @@ import AddEvent from './pages/AddEvent';
 import EditEvent from './pages/EditEvent';
 import AddEventTemplate from './pages/AddEventTemplate';
 import EditEventTemplate from './pages/EditEventTemplate';
+import AdminUserManagement from './pages/AdminUserManagement';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -76,7 +77,8 @@ export default function App() {
             <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
             
             {/* Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/users" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminUserManagement /></ProtectedRoute>} />
             <Route path="/admin/lore" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminLore /></ProtectedRoute>} />
             <Route path="/admin/lore/add-era" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEra /></ProtectedRoute>} />
             <Route path="/admin/lore/add-entry" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEntry /></ProtectedRoute>} />
