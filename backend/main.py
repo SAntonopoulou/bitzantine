@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from database import create_db_and_tables, get_session, engine
 from models import User, UserCreate, UserRead, Token, UserRole
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import posts, events, groups, lore
+from routers import events, groups, lore, announcements
 from typing import List
 import os
 
@@ -40,8 +40,8 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://localhost:8000",
-    "http://localhost:8080", # Added port 8080
-    "http://127.0.0.1:8080", # Added port 8080
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
 ]
 
 app.add_middleware(
@@ -56,10 +56,10 @@ app.add_middleware(
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-app.include_router(posts.router)
 app.include_router(events.router)
 app.include_router(groups.router)
 app.include_router(lore.router)
+app.include_router(announcements.router)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
@@ -89,7 +89,7 @@ async def create_user(user: UserCreate, session: Session = Depends(get_session))
         email=user.email, 
         hashed_password=hashed_password,
         discord_username=user.discord_username,
-        is_active=False # Explicitly set to False
+        is_active=False
     )
     session.add(db_user)
     session.commit()
