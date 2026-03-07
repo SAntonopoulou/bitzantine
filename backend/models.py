@@ -22,6 +22,11 @@ class EntryType(str, PyEnum):
     CORE = "core"
     EVOLVING = "evolving"
 
+# --- Link Models ---
+class UserGroupLink(SQLModel, table=True):
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id", primary_key=True)
+    group_id: Optional[int] = Field(default=None, foreign_key="group.id", primary_key=True)
+
 # --- Base Models ---
 class EventBase(SQLModel):
     title: str
@@ -65,6 +70,7 @@ class User(SQLModel, table=True):
     announcements: List["Announcement"] = Relationship(back_populates="author")
     lore_entries: List["LoreEntry"] = Relationship(back_populates="author")
     rsvps: List["EventRSVP"] = Relationship(back_populates="user")
+    groups: List["Group"] = Relationship(back_populates="members", link_model=UserGroupLink)
 
 class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -92,6 +98,7 @@ class Group(SQLModel, table=True):
     name: str
     description: str
     type: str
+    members: List["User"] = Relationship(back_populates="groups", link_model=UserGroupLink)
 
 class Announcement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

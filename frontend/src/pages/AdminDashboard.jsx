@@ -9,8 +9,10 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
           <h2 className="text-xl font-bold text-amber-400 mb-4">User Management</h2>
-          <p className="text-stone-400 mb-6 flex-grow">Approve new users, manage roles, etc. (Functionality not yet implemented).</p>
-          <button className="bitz-btn w-full text-center mt-auto" disabled>Manage Users</button>
+          <p className="text-stone-400 mb-6 flex-grow">Approve new users, manage roles, and assign groups.</p>
+          <Link to="/admin/users" className="bitz-btn w-full text-center mt-auto">
+            Manage Users
+          </Link>
         </div>
 
         <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
