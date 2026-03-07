@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, SQLModel
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List
 
 from database import get_session
-from models import User, UserRead, UserRole, Group, UserGroupLink, Profile, Announcement, LoreEntry, Event
+from models import User, UserRead, UserRole, Group, UserGroupLink, Profile
 from auth import get_current_active_user, RoleChecker
 
 router = APIRouter(
@@ -132,43 +132,10 @@ async def remove_group_from_user(
     session.commit()
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))])
-async def delete_user(
-    user_id: int, 
-    reattribute_to: Optional[int] = None,
-    session: Session = Depends(get_session)
-):
+async def delete_user(user_id: int, session: Session = Depends(get_session)):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    if reattribute_to:
-        target_user = session.get(User, reattribute_to)
-        if not target_user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user for reattribution not found")
-        
-        # Reattribute Announcements
-        announcements = session.exec(select(Announcement).where(Announcement.author_id == user_id)).all()
-        for ann in announcements:
-            ann.author_id = reattribute_to
-            session.add(ann)
-            
-        # Reattribute Lore Entries
-        lore_entries = session.exec(select(LoreEntry).where(LoreEntry.user_id == user_id)).all()
-        for entry in lore_entries:
-            entry.user_id = reattribute_to
-            session.add(entry)
-            
-        # Reattribute Events
-        events = session.exec(select(Event).where(Event.host_user_id == user_id)).all()
-        for event in events:
-            event.host_user_id = reattribute_to
-            session.add(event)
-    else:
-        # If not reattributing, content will be deleted via cascade or set to null depending on DB constraints.
-        # For this project, we'll manually delete to be safe if reattribution isn't chosen.
-        session.exec(select(Announcement).where(Announcement.author_id == user_id)).all() # Just to be explicit
-        # SQLModel/SQLAlchemy will handle the rest based on relationship definitions.
-        pass
-
     session.delete(user)
     session.commit()

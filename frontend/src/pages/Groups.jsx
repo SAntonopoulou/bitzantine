@@ -1,26 +1,120 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { apiClient, API_URL } from '../apiClient';
+import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 
 export default function Groups() {
   const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user: currentUser } = useAuth();
+  const { showNotification } = useNotification();
 
   useEffect(() => {
-    fetch('/api/groups')
-      .then(res => res.json())
-      .then(data => setGroups(data));
+    fetchGroups();
   }, []);
 
+  const fetchGroups = async () => {
+    try {
+      const res = await apiClient.get('/groups');
+      setGroups(res.data);
+    } catch (err) {
+      console.error("Failed to fetch groups:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = async (groupId) => {
+    try {
+      await apiClient.post(`/groups/${groupId}/apply`);
+      showNotification('Application submitted successfully!', 'success');
+    } catch (err) {
+      showNotification(err.response?.data?.detail || 'Failed to apply', 'error');
+    }
+  };
+
+  const isMember = (groupId) => {
+    return currentUser?.groups?.some(g => g.id === groupId);
+  };
+
+  if (loading) return <div className="p-8 text-stone-400">Loading groups...</div>;
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Groups</h1>
-      <div className="grid gap-6">
+    <div className="p-8 max-w-7xl mx-auto">
+      <h1 className="text-4xl font-bold text-amber-500 mb-8">Guild Groups</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {groups.map(group => (
-          <div key={group.id} className="bg-white p-6 rounded shadow-md">
-            <h2 className="text-xl font-bold mb-2">{group.name}</h2>
-            <p className="text-gray-600 mb-4">{group.description}</p>
-            <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Apply</button>
+          <div key={group.id} className="bg-stone-800 rounded-xl shadow-lg overflow-hidden border border-stone-700 hover:border-amber-500 transition-all duration-300 flex flex-col">
+            {group.image_url ? (
+              <div className="h-48 w-full overflow-hidden">
+                <img src={`${API_URL}${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
+              </div>
+            ) : (
+              <div className="h-48 w-full bg-stone-700 flex items-center justify-center">
+                <span className="text-stone-500 text-4xl font-bold">{group.name[0]}</span>
+              </div>
+            )}
+            
+            <div className="p-6 flex flex-col flex-grow">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-stone-200">{group.name}</h2>
+                <span className="text-xs uppercase tracking-widest bg-stone-900 text-amber-500 px-2 py-1 rounded">
+                  {group.type}
+                </span>
+              </div>
+              
+              <p className="text-stone-400 mb-6 line-clamp-3 flex-grow">{group.description}</p>
+
+              {group.leader && (
+                <div className="flex items-center gap-3 mb-4 p-2 bg-stone-900/50 rounded-lg">
+                  {group.leader.profile?.avatar_url ? (
+                    <img src={`${API_URL}${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
+                      {group.leader.username[0].toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex flex-col">
+                    <span className="text-xs text-stone-500 uppercase tracking-wider">Leader</span>
+                    <Link to={`/profile/${group.leader.username}`} className="text-sm text-stone-300 hover:text-amber-500">
+                      {group.leader.username}
+                    </Link>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-between mt-auto pt-4 border-t border-stone-700">
+                <Link 
+                  to={`/groups/${group.id}`}
+                  className="text-amber-500 hover:text-amber-400 font-medium hover:underline"
+                >
+                  View Details
+                </Link>
+                
+                {currentUser && currentUser.role !== 'user' && !isMember(group.id) && (
+                  <button 
+                    onClick={() => handleApply(group.id)}
+                    className="bitz-btn-sm"
+                  >
+                    Apply
+                  </button>
+                )}
+                {isMember(group.id) && (
+                  <span className="text-stone-500 text-sm italic">Member</span>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>
+      
+      {groups.length === 0 && (
+        <div className="text-center py-12 bg-stone-800 rounded-xl border border-stone-700">
+          <p className="text-stone-400 text-lg">No groups established yet.</p>
+        </div>
+      )}
     </div>
   );
 }

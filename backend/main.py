@@ -4,8 +4,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
-from models import User, UserCreate, UserRead, Token, UserRole
+from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
 from routers import events, groups, lore, announcements, admin_events, admin, admin_users
 from typing import List
@@ -101,9 +102,11 @@ async def create_user(user: UserCreate, session: Session = Depends(get_session))
     session.refresh(db_user)
     return db_user
 
-@app.get("/users/me", response_model=UserRead)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
-    return current_user
+@app.get("/users/me", response_model=UserReadMe)
+async def read_users_me(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
+    # Re-fetch user with groups loaded
+    user = session.exec(select(User).where(User.id == current_user.id).options(selectinload(User.groups))).first()
+    return user
 
 @app.get("/admin", dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))])
 async def read_admin_data():
