@@ -7,6 +7,7 @@ import { useNotification } from '../context/NotificationContext';
 export default function Groups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const { user: currentUser } = useAuth();
   const { showNotification } = useNotification();
 
@@ -38,14 +39,31 @@ export default function Groups() {
     return currentUser?.groups?.some(g => g.id === groupId);
   };
 
+  const filteredGroups = groups.filter(group => 
+    group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    group.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    group.type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (loading) return <div className="p-8 text-stone-400">Loading groups...</div>;
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <h1 className="text-4xl font-bold text-amber-500 mb-8">Guild Groups</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <h1 className="text-4xl font-bold text-amber-500">Guild Groups</h1>
+        <div className="w-full md:w-1/3">
+          <input
+            type="text"
+            placeholder="Search groups..."
+            className="w-full bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 text-stone-200 focus:outline-none focus:border-amber-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {groups.map(group => (
+        {filteredGroups.map(group => (
           <div key={group.id} className="bg-stone-800 rounded-xl shadow-lg overflow-hidden border border-stone-700 hover:border-amber-500 transition-all duration-300 flex flex-col">
             {group.image_url ? (
               <div className="h-48 w-full overflow-hidden">
@@ -110,9 +128,9 @@ export default function Groups() {
         ))}
       </div>
       
-      {groups.length === 0 && (
+      {filteredGroups.length === 0 && (
         <div className="text-center py-12 bg-stone-800 rounded-xl border border-stone-700">
-          <p className="text-stone-400 text-lg">No groups established yet.</p>
+          <p className="text-stone-400 text-lg">No groups found matching your search.</p>
         </div>
       )}
     </div>

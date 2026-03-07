@@ -320,10 +320,14 @@ def remove_member(id: int, user_id: int, current_user: User = Depends(get_curren
     if not link:
         raise HTTPException(status_code=404, detail="Membership not found")
     
-    # Cannot remove the leader unless via assign_leader
+    # If the leader is leaving, set group.leader_id to None
     group = session.get(Group, id)
     if group.leader_id == user_id:
-        raise HTTPException(status_code=400, detail="Cannot remove the leader. Assign a new leader first.")
+        if is_self:
+            group.leader_id = None
+            session.add(group)
+        else:
+            raise HTTPException(status_code=400, detail="Cannot remove the leader. Assign a new leader first.")
 
     session.delete(link)
     session.commit()

@@ -14,6 +14,11 @@ const GroupNode = ({ group }) => (
             <Link to={`/groups/${group.id}`} className="hover:underline">{group.name}</Link>
           </h3>
           <p className="text-stone-400 text-sm">{group.description}</p>
+          {group.type && (
+            <span className="text-xs uppercase tracking-widest bg-stone-900 text-amber-500 px-2 py-1 rounded mt-2 inline-block">
+              {group.type}
+            </span>
+          )}
         </div>
       </div>
       
@@ -23,7 +28,7 @@ const GroupNode = ({ group }) => (
           {group.leader ? (
             <div className="flex items-center gap-2">
               {group.leader.profile?.avatar_url ? (
-                <img src={group.leader.profile.avatar_url} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+                <img src={`${API_URL}${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                   {group.leader.username[0].toUpperCase()}
@@ -45,7 +50,7 @@ const GroupNode = ({ group }) => (
               group.officers.map(officer => (
                 <div key={officer.id} className="flex items-center gap-2 bg-stone-700 px-2 py-1 rounded hover:bg-stone-600 transition-colors">
                   {officer.profile?.avatar_url ? (
-                    <img src={officer.profile.avatar_url} alt={officer.username} className="w-5 h-5 rounded-full object-cover" />
+                    <img src={`${API_URL}${officer.profile.avatar_url}`} alt={officer.username} className="w-5 h-5 rounded-full object-cover" />
                   ) : (
                     <div className="w-5 h-5 bg-stone-600 rounded-full flex items-center justify-center text-amber-500 font-bold text-[10px]">
                       {officer.username[0].toUpperCase()}
@@ -89,7 +94,7 @@ export default function Government() {
       } catch (err) {
         console.error("Failed to fetch hierarchy:", err);
       } finally {
-        setLoading(setLoading(false));
+        setLoading(false);
       }
     };
     fetchHierarchy();
