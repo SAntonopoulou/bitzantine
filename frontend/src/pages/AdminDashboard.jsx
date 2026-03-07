@@ -16,6 +16,14 @@ export default function AdminDashboard() {
         </div>
 
         <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
+          <h2 className="text-xl font-bold text-amber-400 mb-4">Group Management</h2>
+          <p className="text-stone-400 mb-6 flex-grow">Manage guild hierarchy, assign leaders, and create sub-groups.</p>
+          <Link to="/admin/groups" className="bitz-btn w-full text-center mt-auto">
+            Manage Groups
+          </Link>
+        </div>
+
+        <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
           <h2 className="text-xl font-bold text-amber-400 mb-4">Lore Management</h2>
           <p className="text-stone-400 mb-6 flex-grow">Manage the guild's historical lore, eras, and individual entries.</p>
           <Link to="/admin/lore" className="bitz-btn w-full text-center mt-auto">

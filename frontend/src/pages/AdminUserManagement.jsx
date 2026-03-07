@@ -18,11 +18,6 @@ const AdminUserManagement = () => {
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    
-    // Reattribution state
-    const [reattributeContent, setReattributeContent] = useState(false);
-    const [reattributeSearch, setReattributeSearch] = useState('');
-    const [reattributeTarget, setReattributeTarget] = useState(null);
 
     useEffect(() => {
         fetchUsers();
@@ -77,14 +72,6 @@ const AdminUserManagement = () => {
 
         return filteredUsers;
     }, [users, sortConfig, roleFilter, statusFilter, searchTerm]);
-
-    const reattributeSuggestions = useMemo(() => {
-        if (!reattributeSearch || reattributeSearch.length < 2) return [];
-        return users.filter(u => 
-            u.id !== selectedUser?.id && 
-            u.username.toLowerCase().includes(reattributeSearch.toLowerCase())
-        ).slice(0, 5);
-    }, [reattributeSearch, users, selectedUser]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -143,23 +130,12 @@ const AdminUserManagement = () => {
 
     const handleDeleteUser = async () => {
         try {
-            const params = {};
-            if (reattributeContent && reattributeTarget) {
-                params.reattribute_to = reattributeTarget.id;
-            }
-            await apiClient.delete(`/admin/users/${selectedUser.id}`, { params });
+            await apiClient.delete(`/admin/users/${selectedUser.id}`);
             fetchUsers();
             setIsDeleteModalOpen(false);
-            resetDeleteState();
         } catch (error) {
             console.error("Error deleting user:", error);
         }
-    };
-
-    const resetDeleteState = () => {
-        setReattributeContent(false);
-        setReattributeSearch('');
-        setReattributeTarget(null);
     };
 
     const openRoleModal = (user) => {
@@ -381,98 +357,12 @@ const AdminUserManagement = () => {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal with Reattribution */}
-            {isDeleteModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
-                    <div className="bg-stone-800 rounded-lg shadow-xl p-8 max-w-lg w-full">
-                        <h2 className="text-xl font-bold text-red-500 mb-4">Delete User: {selectedUser?.username}</h2>
-                        <p className="text-stone-300 mb-6">
-                            Are you sure you want to delete this user? This action is permanent.
-                        </p>
-                        
-                        <div className="bg-stone-900/50 p-4 rounded-lg border border-stone-700 mb-6">
-                            <label className="flex items-center gap-3 cursor-pointer text-stone-200 mb-4">
-                                <input 
-                                    type="checkbox"
-                                    checked={reattributeContent}
-                                    onChange={(e) => setReattributeContent(e.target.checked)}
-                                    className="w-4 h-4 rounded border-stone-600 bg-stone-700 text-amber-500 focus:ring-amber-500"
-                                />
-                                <span className="font-semibold">Reattribute content to another user?</span>
-                            </label>
-                            
-                            {reattributeContent && (
-                                <div className="space-y-4">
-                                    <p className="text-sm text-stone-400">
-                                        Announcements, Lore Entries, and Events created by this user will be transferred to the selected user.
-                                    </p>
-                                    <div className="relative">
-                                        <input 
-                                            type="text"
-                                            placeholder="Search for a user..."
-                                            value={reattributeTarget ? reattributeTarget.username : reattributeSearch}
-                                            onChange={(e) => {
-                                                setReattributeSearch(e.target.value);
-                                                setReattributeTarget(null);
-                                            }}
-                                            disabled={!!reattributeTarget}
-                                            className="w-full bg-stone-700 border border-stone-600 rounded-md px-4 py-2 text-stone-200 focus:outline-none focus:border-amber-500 disabled:opacity-50"
-                                        />
-                                        {reattributeTarget && (
-                                            <button 
-                                                onClick={() => setReattributeTarget(null)}
-                                                className="absolute right-2 top-2 text-stone-400 hover:text-stone-200"
-                                            >
-                                                ✕
-                                            </button>
-                                        )}
-                                        
-                                        {!reattributeTarget && reattributeSuggestions.length > 0 && (
-                                            <div className="absolute z-10 w-full mt-1 bg-stone-700 border border-stone-600 rounded-md shadow-xl">
-                                                {reattributeSuggestions.map(u => (
-                                                    <div 
-                                                        key={u.id}
-                                                        onClick={() => {
-                                                            setReattributeTarget(u);
-                                                            setReattributeSearch('');
-                                                        }}
-                                                        className="px-4 py-2 hover:bg-stone-600 cursor-pointer text-stone-200"
-                                                    >
-                                                        {u.username} ({u.role})
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex justify-end gap-4">
-                            <button 
-                                onClick={() => {
-                                    setIsDeleteModalOpen(false);
-                                    resetDeleteState();
-                                }}
-                                className="px-4 py-2 text-stone-400 hover:text-stone-200"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={handleDeleteUser}
-                                disabled={reattributeContent && !reattributeTarget}
-                                className={`px-4 py-2 rounded font-bold transition-colors ${
-                                    reattributeContent && !reattributeTarget 
-                                    ? 'bg-stone-700 text-stone-500 cursor-not-allowed' 
-                                    : 'bg-red-600 text-white hover:bg-red-700'
-                                }`}
-                            >
-                                Confirm Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                message={`Are you sure you want to delete ${selectedUser?.username}? This action cannot be undone.`}
+                onConfirm={handleDeleteUser}
+                onCancel={() => setIsDeleteModalOpen(false)}
+            />
         </div>
     );
 };

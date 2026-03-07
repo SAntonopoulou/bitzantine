@@ -22,10 +22,21 @@ class EntryType(str, PyEnum):
     CORE = "core"
     EVOLVING = "evolving"
 
+class GroupRole(str, PyEnum):
+    LEADER = "leader"
+    OFFICER = "officer"
+    MEMBER = "member"
+
+class MembershipStatus(str, PyEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+
 # --- Link Models ---
 class UserGroupLink(SQLModel, table=True):
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", primary_key=True)
     group_id: Optional[int] = Field(default=None, foreign_key="group.id", primary_key=True)
+    status: MembershipStatus = Field(default=MembershipStatus.PENDING)
+    group_role: GroupRole = Field(default=GroupRole.MEMBER)
 
 # --- Base Models ---
 class EventBase(SQLModel):
@@ -71,6 +82,7 @@ class User(SQLModel, table=True):
     lore_entries: List["LoreEntry"] = Relationship(back_populates="author")
     rsvps: List["EventRSVP"] = Relationship(back_populates="user")
     groups: List["Group"] = Relationship(back_populates="members", link_model=UserGroupLink)
+    led_groups: List["Group"] = Relationship(back_populates="leader")
 
 class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -98,6 +110,18 @@ class Group(SQLModel, table=True):
     name: str
     description: str
     type: str
+    image_url: Optional[str] = None
+    
+    parent_id: Optional[int] = Field(default=None, foreign_key="group.id")
+    parent: Optional["Group"] = Relationship(
+        back_populates="children", 
+        sa_relationship_kwargs={"remote_side": "Group.id"}
+    )
+    children: List["Group"] = Relationship(back_populates="parent")
+    
+    leader_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    leader: Optional[User] = Relationship(back_populates="led_groups")
+
     members: List["User"] = Relationship(back_populates="groups", link_model=UserGroupLink)
 
 class Announcement(SQLModel, table=True):
@@ -148,6 +172,14 @@ class UserRead(SQLModel):
     discord_username: Optional[str] = None
     role: UserRole
     is_active: bool
+
+class UserGroupRead(SQLModel):
+    id: int
+    name: str
+    type: str
+
+class UserReadMe(UserRead):
+    groups: List[UserGroupRead] = []
 
 class UserReadWithProfile(UserRead):
     profile: Optional[Profile] = None

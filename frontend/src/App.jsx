@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Announcements from './pages/Announcements';
@@ -25,11 +26,14 @@ import EditEvent from './pages/EditEvent';
 import AddEventTemplate from './pages/AddEventTemplate';
 import EditEventTemplate from './pages/EditEventTemplate';
 import AdminUserManagement from './pages/AdminUserManagement';
+import AdminGroups from './pages/AdminGroups';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Groups from './pages/Groups';
+import GroupDetail from './pages/GroupDetail';
+import GroupManagement from './pages/GroupManagement';
 import Vote from './pages/Vote';
 import Settings from './pages/Settings';
 
@@ -53,47 +57,52 @@ export default function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen bg-stone-900 text-stone-200">
-          <Navbar />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/announcements/:id" element={<AnnouncementDetail />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/events/:id" element={<EventDetail />} />
-            <Route path="/government" element={<Government />} />
-            <Route path="/lore" element={<Lore />} />
-            <Route path="/lore/eras/:eraId" element={<EraPage />} />
-            <Route path="/lore/:entryId" element={<LoreEntryPage />} />
-            <Route path="/join" element={<Join />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            
-            {/* User Routes */}
-            <Route path="/profile/me" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Profile /></ProtectedRoute>} />
-            <Route path="/groups" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Groups /></ProtectedRoute>} />
-            <Route path="/vote" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Vote /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
-            
-            {/* Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminUserManagement /></ProtectedRoute>} />
-            <Route path="/admin/lore" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminLore /></ProtectedRoute>} />
-            <Route path="/admin/lore/add-era" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEra /></ProtectedRoute>} />
-            <Route path="/admin/lore/add-entry" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEntry /></ProtectedRoute>} />
-            <Route path="/admin/lore/edit-era/:eraId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEraPage /></ProtectedRoute>} />
-            <Route path="/admin/lore/edit-entry/:entryId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEntryPage /></ProtectedRoute>} />
-            <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminAnnouncements /></ProtectedRoute>} />
-            <Route path="/admin/announcements/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddAnnouncement /></ProtectedRoute>} />
-            <Route path="/admin/announcements/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditAnnouncement /></ProtectedRoute>} />
-            <Route path="/admin/events" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminEvents /></ProtectedRoute>} />
-            <Route path="/admin/events/add" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AddEvent /></ProtectedRoute>} />
-            <Route path="/admin/events/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><EditEvent /></ProtectedRoute>} />
-            <Route path="/admin/events/templates/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEventTemplate /></ProtectedRoute>} />
-            <Route path="/admin/events/templates/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEventTemplate /></ProtectedRoute>} />
-          </Routes>
-        </div>
+        <NotificationProvider>
+          <div className="min-h-screen bg-stone-900 text-stone-200">
+            <Navbar />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/announcements" element={<Announcements />} />
+              <Route path="/announcements/:id" element={<AnnouncementDetail />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventDetail />} />
+              <Route path="/government" element={<Government />} />
+              <Route path="/lore" element={<Lore />} />
+              <Route path="/lore/eras/:eraId" element={<EraPage />} />
+              <Route path="/lore/:entryId" element={<LoreEntryPage />} />
+              <Route path="/join" element={<Join />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              
+              {/* User Routes */}
+              <Route path="/profile/me" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Profile /></ProtectedRoute>} />
+              <Route path="/groups" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Groups /></ProtectedRoute>} />
+              <Route path="/groups/:id" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupDetail /></ProtectedRoute>} />
+              <Route path="/groups/:id/manage" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupManagement /></ProtectedRoute>} />
+              <Route path="/vote" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Vote /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminUserManagement /></ProtectedRoute>} />
+              <Route path="/admin/groups" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminGroups /></ProtectedRoute>} />
+              <Route path="/admin/lore" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminLore /></ProtectedRoute>} />
+              <Route path="/admin/lore/add-era" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEra /></ProtectedRoute>} />
+              <Route path="/admin/lore/add-entry" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEntry /></ProtectedRoute>} />
+              <Route path="/admin/lore/edit-era/:eraId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEraPage /></ProtectedRoute>} />
+              <Route path="/admin/lore/edit-entry/:entryId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEntryPage /></ProtectedRoute>} />
+              <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminAnnouncements /></ProtectedRoute>} />
+              <Route path="/admin/announcements/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddAnnouncement /></ProtectedRoute>} />
+              <Route path="/admin/announcements/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditAnnouncement /></ProtectedRoute>} />
+              <Route path="/admin/events" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminEvents /></ProtectedRoute>} />
+              <Route path="/admin/events/add" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AddEvent /></ProtectedRoute>} />
+              <Route path="/admin/events/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><EditEvent /></ProtectedRoute>} />
+              <Route path="/admin/events/templates/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEventTemplate /></ProtectedRoute>} />
+              <Route path="/admin/events/templates/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEventTemplate /></ProtectedRoute>} />
+            </Routes>
+          </div>
+        </NotificationProvider>
       </AuthProvider>
     </Router>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function ConfirmationModal({ message, onConfirm, onCancel, isOpen }) {
+export default function ConfirmationModal({ message, onConfirm, onCancel, isOpen, confirmText = "Confirm Delete" }) {
   if (!isOpen) return null;
 
   return (
@@ -18,7 +18,7 @@ export default function ConfirmationModal({ message, onConfirm, onCancel, isOpen
             onClick={onConfirm} 
             className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
           >
-            Confirm Delete
+            {confirmText}
           </button>
         </div>
       </div>
