@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, status
 from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
@@ -84,8 +84,16 @@ async def update_era(era_id: int, era_update: LoreEraUpdate, session: Session = 
     for key, value in era_data.items():
         setattr(db_era, key, value)
     
-    # Re-use the create logic to handle setting the current era
     return await create_era(db_era, session, user)
+
+@router.delete("/eras/{era_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_era(era_id: int, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    era = session.get(LoreEra, era_id)
+    if not era:
+        raise HTTPException(status_code=404, detail="Era not found")
+    session.delete(era)
+    session.commit()
+    return
 
 @router.get("/entries", response_model=List[LoreEntry])
 async def get_entries(
@@ -167,3 +175,12 @@ async def update_entry(entry_id: int, entry_update: LoreEntryUpdate, session: Se
     except Exception as e:
         session.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/entries/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_entry(entry_id: int, session: Session = Depends(get_session), user: User = Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    entry = session.get(LoreEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    session.delete(entry)
+    session.commit()
+    return

@@ -67,7 +67,7 @@ class LoreEra(SQLModel, table=True):
     end_date: Optional[datetime] = None
     is_current_era: bool = Field(default=False)
     
-    entries: List["LoreEntry"] = Relationship(back_populates="era")
+    entries: List["LoreEntry"] = Relationship(back_populates="era", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class LoreEntry(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
