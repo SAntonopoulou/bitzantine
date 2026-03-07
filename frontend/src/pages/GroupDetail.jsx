@@ -90,6 +90,11 @@ export default function GroupDetail() {
                   </Link>
                 )}
               </div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-xs uppercase tracking-widest bg-stone-900 text-amber-500 px-2 py-1 rounded">
+                  {group.type}
+                </span>
+              </div>
               <p className="text-stone-400 text-lg">{group.description}</p>
             </div>
             
