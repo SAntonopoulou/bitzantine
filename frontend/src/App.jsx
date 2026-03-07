@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Announcements from './pages/Announcements';
+import AnnouncementDetail from './pages/AnnouncementDetail';
 import Events from './pages/Events';
 import Government from './pages/Government';
 import Lore from './pages/Lore';
@@ -14,6 +15,9 @@ import AddEra from './pages/AddEra';
 import AddEntry from './pages/AddEntry';
 import EditEraPage from './pages/EditEraPage';
 import EditEntryPage from './pages/EditEntryPage';
+import AdminAnnouncements from './pages/AdminAnnouncements';
+import AddAnnouncement from './pages/AddAnnouncement';
+import EditAnnouncement from './pages/EditAnnouncement';
 import Join from './pages/Join';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -48,6 +52,7 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/announcements" element={<Announcements />} />
+            <Route path="/announcements/:id" element={<AnnouncementDetail />} />
             <Route path="/events" element={<Events />} />
             <Route path="/government" element={<Government />} />
             <Route path="/lore" element={<Lore />} />
@@ -70,6 +75,9 @@ export default function App() {
             <Route path="/admin/lore/add-entry" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEntry /></ProtectedRoute>} />
             <Route path="/admin/lore/edit-era/:eraId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEraPage /></ProtectedRoute>} />
             <Route path="/admin/lore/edit-entry/:entryId" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEntryPage /></ProtectedRoute>} />
+            <Route path="/admin/announcements" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminAnnouncements /></ProtectedRoute>} />
+            <Route path="/admin/announcements/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddAnnouncement /></ProtectedRoute>} />
+            <Route path="/admin/announcements/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditAnnouncement /></ProtectedRoute>} />
           </Routes>
         </div>
       </AuthProvider>
