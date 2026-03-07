@@ -36,6 +36,7 @@ def get_group_tree(session: Session, parent_id: Optional[int] = None):
             "id": group.id,
             "name": group.name,
             "description": group.description,
+            "type": group.type,
             "image_url": group.image_url,
             "leader": group.leader,
             "officers": officers,

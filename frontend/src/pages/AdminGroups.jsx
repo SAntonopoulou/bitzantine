@@ -20,7 +20,7 @@ const GroupItem = ({ group, onMove, onEdit, onDelete, allGroups }) => {
           <div>
             <h3 className="text-stone-200 font-bold">{group.name}</h3>
             <div className="flex gap-2 text-xs uppercase tracking-widest text-stone-500">
-              <span>{group.type}</span>
+              <span>Type: {group.type}</span>
               <span>•</span>
               <span>Leader: {group.leader?.username || 'None'}</span>
             </div>
