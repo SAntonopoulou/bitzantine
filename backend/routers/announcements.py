@@ -59,8 +59,25 @@ async def create_announcement(
     return announcement
 
 @router.get("", response_model=List[Announcement])
-async def get_announcements(skip: int = 0, limit: int = 10, session: Session = Depends(get_session)):
-    announcements = session.exec(select(Announcement).order_by(desc(Announcement.created_at)).offset(skip).limit(limit)).all()
+async def get_announcements(
+    skip: int = 0,
+    limit: int = 10,
+    search: Optional[str] = None,
+    session: Session = Depends(get_session)
+):
+    query = select(Announcement)
+
+    if search:
+        search_term = f"%{search}%"
+        query = query.where(
+            or_(
+                Announcement.title.ilike(search_term),
+                Announcement.content.ilike(search_term),
+                cast(Announcement.tags, String).ilike(search_term)
+            )
+        )
+
+    announcements = session.exec(query.order_by(desc(Announcement.created_at)).offset(skip).limit(limit)).all()
     return announcements
 
 @router.get("/{announcement_id}", response_model=Dict[str, Any])
@@ -69,7 +86,6 @@ async def get_announcement(announcement_id: int, session: Session = Depends(get_
     if not announcement:
         raise HTTPException(status_code=404, detail="Announcement not found")
 
-    # Get next and previous announcement IDs
     previous_announcement_id = session.exec(
         select(Announcement.id)
         .where(Announcement.created_at > announcement.created_at)
