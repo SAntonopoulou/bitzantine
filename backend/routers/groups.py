@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from database import get_session
-from models import Group, User, UserRole, UserGroupLink, MembershipStatus, GroupRole
+from models import Group, User, UserRole, UserGroupLink, MembershipStatus, GroupRole, Profile
 from auth import get_current_active_user, RoleChecker
 import shutil
 import os
@@ -38,8 +38,18 @@ def get_group_tree(session: Session, parent_id: Optional[int] = None):
             "description": group.description,
             "type": group.type,
             "image_url": group.image_url,
-            "leader": group.leader,
-            "officers": officers,
+            "leader": {
+                "id": group.leader.id,
+                "username": group.leader.username,
+                "display_name": group.leader.display_name,
+                "avatar_url": group.leader.profile.avatar_url if group.leader.profile else None
+            } if group.leader else None,
+            "officers": [{
+                "id": officer.id,
+                "username": officer.username,
+                "display_name": officer.display_name,
+                "avatar_url": officer.profile.avatar_url if officer.profile else None
+            } for officer in officers],
             "children": get_group_tree(session, group.id)
         }
         tree.append(group_data)
@@ -66,7 +76,12 @@ def get_group(id: int, session: Session = Depends(get_session)):
     
     return {
         "group": group,
-        "members": [{"user": m[0], "role": m[1], "status": m[2]} for m in members_data]
+        "members": [{"user": {
+            "id": m[0].id,
+            "username": m[0].username,
+            "display_name": m[0].display_name,
+            "avatar_url": m[0].profile.avatar_url if m[0].profile else None
+        }, "role": m[1], "status": m[2]} for m in members_data]
     }
 
 @router.post("/", response_model=Group, dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN]))])

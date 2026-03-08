@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiClient } from '../apiClient';
+import { api, API_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -26,7 +26,7 @@ const AdminUserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await apiClient.get('/admin/users');
+            const response = await api.get('/admin/users');
             setUsers(response.data);
         } catch (error) {
             console.error("Error fetching users:", error);
@@ -35,7 +35,7 @@ const AdminUserManagement = () => {
 
     const fetchGroups = async () => {
         try {
-            const response = await apiClient.get('/groups');
+            const response = await api.get('/admin/events/form-data/groups');
             setGroups(response.data);
         } catch (error) {
             console.error("Error fetching groups:", error);
@@ -54,16 +54,19 @@ const AdminUserManagement = () => {
         }
         if (searchTerm) {
             filteredUsers = filteredUsers.filter(user =>
-                user.username.toLowerCase().includes(searchTerm.toLowerCase())
+                user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (user.display_name && user.display_name.toLowerCase().includes(searchTerm.toLowerCase()))
             );
         }
 
         if (sortConfig.key) {
             filteredUsers.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
+                const valA = a[sortConfig.key] || '';
+                const valB = b[sortConfig.key] || '';
+                if (valA < valB) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
                 }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
+                if (valA > valB) {
                     return sortConfig.direction === 'ascending' ? 1 : -1;
                 }
                 return 0;
@@ -90,7 +93,7 @@ const AdminUserManagement = () => {
 
     const handleStatusChange = async (user, newStatus) => {
         try {
-            await apiClient.put(`/admin/users/${user.id}/status`, { is_active: newStatus });
+            await api.put(`/admin/users/${user.id}/status`, { is_active: newStatus });
             fetchUsers();
         } catch (error) {
             console.error("Error updating user status:", error);
@@ -99,7 +102,7 @@ const AdminUserManagement = () => {
 
     const handleRoleChange = async (newRole) => {
         try {
-            await apiClient.put(`/admin/users/${selectedUser.id}/role`, { role: newRole });
+            await api.put(`/admin/users/${selectedUser.id}/role`, { role: newRole });
             fetchUsers();
             setIsRoleModalOpen(false);
         } catch (error) {
@@ -115,10 +118,10 @@ const AdminUserManagement = () => {
             const toRemove = [...currentGroupIds].filter(groupId => !selectedGroups.has(groupId));
 
             for (const groupId of toAdd) {
-                await apiClient.post(`/admin/users/${selectedUser.id}/assign-group`, { group_id: groupId });
+                await api.post(`/admin/users/${selectedUser.id}/assign-group`, { group_id: groupId });
             }
             for (const groupId of toRemove) {
-                await apiClient.delete(`/admin/users/${selectedUser.id}/remove-group/${groupId}`);
+                await api.delete(`/admin/users/${selectedUser.id}/remove-group/${groupId}`);
             }
             
             fetchUsers();
@@ -130,7 +133,7 @@ const AdminUserManagement = () => {
 
     const handleDeleteUser = async () => {
         try {
-            await apiClient.delete(`/admin/users/${selectedUser.id}`);
+            await api.delete(`/admin/users/${selectedUser.id}`);
             fetchUsers();
             setIsDeleteModalOpen(false);
         } catch (error) {
@@ -174,7 +177,7 @@ const AdminUserManagement = () => {
                 <div className="relative flex-grow">
                     <input 
                         type="text"
-                        placeholder="Search by username" 
+                        placeholder="Search by username or display name" 
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full bg-stone-700 border border-stone-600 rounded-md px-4 py-2 text-stone-200 focus:outline-none focus:border-amber-500"
@@ -214,6 +217,10 @@ const AdminUserManagement = () => {
                 <table className="w-full text-left text-stone-200">
                     <thead>
                         <tr className="border-b border-stone-700">
+                            <th className="pb-4 text-amber-500"></th>
+                            <th className="pb-4 text-amber-500 cursor-pointer hover:text-amber-400" onClick={() => requestSort('display_name')}>
+                                Name{getSortIcon('display_name')}
+                            </th>
                             <th className="pb-4 text-amber-500 cursor-pointer hover:text-amber-400" onClick={() => requestSort('username')}>
                                 Username{getSortIcon('username')}
                             </th>
@@ -230,7 +237,17 @@ const AdminUserManagement = () => {
                     <tbody className="divide-y divide-stone-700">
                         {sortedAndFilteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-stone-700 transition-colors">
-                                <td className="py-4">{user.username}</td>
+                                <td className="py-4">
+                                    {user.avatar_url ? (
+                                        <img src={`${API_URL}${user.avatar_url}`} alt={user.display_name || user.username} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                        <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
+                                            {(user.display_name || user.username)[0].toUpperCase()}
+                                        </div>
+                                    )}
+                                </td>
+                                <td className="py-4 font-medium text-stone-100">{user.display_name || user.username}</td>
+                                <td className="py-4 text-stone-400 text-sm">@{user.username}</td>
                                 <td className="py-4 capitalize">{user.role.replace('_', ' ')}</td>
                                 <td className="py-4">
                                     <span className={`px-2 py-1 rounded-full text-xs ${user.is_active ? 'bg-green-900 text-green-200' : 'bg-yellow-900 text-yellow-200'}`}>
@@ -289,7 +306,7 @@ const AdminUserManagement = () => {
             {isRoleModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
                     <div className="bg-stone-800 rounded-lg shadow-xl p-8 max-w-md w-full">
-                        <h2 className="text-xl font-bold text-amber-500 mb-6">Change Role for {selectedUser?.username}</h2>
+                        <h2 className="text-xl font-bold text-amber-500 mb-6">Change Role for {selectedUser?.display_name || selectedUser?.username}</h2>
                         <select
                             defaultValue={selectedUser?.role}
                             onChange={(e) => handleRoleChange(e.target.value)}
@@ -317,7 +334,7 @@ const AdminUserManagement = () => {
             {isGroupModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50">
                     <div className="bg-stone-800 rounded-lg shadow-xl p-8 max-w-md w-full">
-                        <h2 className="text-xl font-bold text-amber-500 mb-6">Manage Groups for {selectedUser?.username}</h2>
+                        <h2 className="text-xl font-bold text-amber-500 mb-6">Manage Groups for {selectedUser?.display_name || selectedUser?.username}</h2>
                         <div className="max-h-60 overflow-y-auto mb-6 space-y-3">
                             {groups.map((group) => (
                                 <label key={group.id} className="flex items-center gap-3 cursor-pointer text-stone-200 hover:text-amber-400">
@@ -359,7 +376,7 @@ const AdminUserManagement = () => {
 
             <ConfirmationModal
                 isOpen={isDeleteModalOpen}
-                message={`Are you sure you want to delete ${selectedUser?.username}? This action cannot be undone.`}
+                message={`Are you sure you want to delete ${selectedUser?.display_name || selectedUser?.username}? This action cannot be undone.`}
                 onConfirm={handleDeleteUser}
                 onCancel={() => setIsDeleteModalOpen(false)}
             />

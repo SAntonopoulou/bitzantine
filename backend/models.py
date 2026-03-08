@@ -1,7 +1,7 @@
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sqlmodel import SQLModel, Field, Relationship
 from enum import Enum as PyEnum
-from datetime import datetime
+from datetime import datetime, date
 from sqlalchemy import JSON, Column
 
 # --- Enums ---
@@ -12,6 +12,11 @@ class UserRole(str, PyEnum):
     OFFICER = "officer"
     CITIZEN = "citizen"
     USER = "user"
+
+class PrivacyLevel(str, PyEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    MEMBERS_ONLY = "members_only" # Citizens and above
 
 class RSVPStatus(str, PyEnum):
     ATTENDING = "attending"
@@ -65,6 +70,37 @@ class Profile(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    
+    # Identity
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    
+    # Gaming Info
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None # Text
+    typical_playtime: Optional[str] = None
+    
+    # Display Settings
+    use_in_game_name: bool = Field(default=False)
+    
+    # JSON Fields
+    social_links: Dict = Field(default={}, sa_column=Column(JSON))
+    
+    # Privacy Settings (JSON)
+    privacy_settings: Dict = Field(default={
+        "bio": PrivacyLevel.PUBLIC,
+        "real_name": PrivacyLevel.PUBLIC,
+        "location": PrivacyLevel.PUBLIC,
+        "birthdate": PrivacyLevel.PUBLIC,
+        "gender": PrivacyLevel.PUBLIC,
+        "typical_playtime": PrivacyLevel.PUBLIC,
+        "social_links": PrivacyLevel.PUBLIC
+    }, sa_column=Column(JSON))
+    
     user_id: int = Field(foreign_key="user.id")
     user: Optional["User"] = Relationship(back_populates="profile")
 
@@ -84,9 +120,16 @@ class User(SQLModel, table=True):
     groups: List["Group"] = Relationship(back_populates="members", link_model=UserGroupLink)
     led_groups: List["Group"] = Relationship(back_populates="leader")
 
+    @property
+    def display_name(self) -> str:
+        if self.profile and self.profile.use_in_game_name and self.profile.in_game_username:
+            return self.profile.in_game_username
+        return self.username
+
 class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     host: Optional[User] = Relationship()
+    host_group: Optional["Group"] = Relationship()
     rsvps: List["EventRSVP"] = Relationship(back_populates="event", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class EventRSVP(EventRSVPBase, table=True):
@@ -168,10 +211,12 @@ class UserCreate(SQLModel):
 class UserRead(SQLModel):
     id: int
     username: str
+    display_name: Optional[str] = None
     email: str
     discord_username: Optional[str] = None
     role: UserRole
     is_active: bool
+    avatar_url: Optional[str] = None
 
 class UserGroupRead(SQLModel):
     id: int
@@ -181,8 +226,52 @@ class UserGroupRead(SQLModel):
 class UserReadMe(UserRead):
     groups: List[UserGroupRead] = []
 
+class ProfileRead(SQLModel):
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    typical_playtime: Optional[str] = None
+    use_in_game_name: bool = False
+    social_links: Dict = {}
+    privacy_settings: Dict = {}
+
 class UserReadWithProfile(UserRead):
-    profile: Optional[Profile] = None
+    profile: Optional[ProfileRead] = None
+
+class UserPublicProfile(SQLModel):
+    id: int
+    username: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    header_image_url: Optional[str] = None
+    username_color: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    
+    # Optional fields based on privacy
+    bio: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    discord_username: Optional[str] = None
+    email: Optional[str] = None
+    social_links: Optional[Dict] = None
+    typical_playtime: Optional[str] = None
+    
+    # Fields for editing (only populated for owner/staff)
+    in_game_username: Optional[str] = None
+    use_in_game_name: Optional[bool] = None
+    privacy_settings: Optional[Dict] = None
+    
+    groups: List[UserGroupRead] = []
+    led_groups: List[UserGroupRead] = []
 
 class EventRSVPRead(EventRSVPBase):
     id: int
@@ -191,9 +280,26 @@ class EventRSVPRead(EventRSVPBase):
 class EventRead(EventBase):
     id: int
 
+class GroupRead(SQLModel):
+    id: int
+    name: str
+    image_url: Optional[str] = None
+
 class EventReadWithDetails(EventRead):
     rsvps: List[EventRSVPRead] = []
     host: Optional[UserReadWithProfile] = None
+    host_group: Optional[GroupRead] = None
+
+class EventTemplateRead(SQLModel):
+    id: int
+    name: str
+    title: str
+    description: str
+    featured_image_url: Optional[str] = None
+    min_participants: Optional[int] = None
+    max_participants: Optional[int] = None
+    tags: List[str] = []
+    category: Optional[str] = None
 
 class EventDetailResponse(SQLModel):
     event: EventReadWithDetails
@@ -209,7 +315,9 @@ class TokenData(SQLModel):
 
 # --- Update Models ---
 class EventUpdate(EventBase):
-    pass
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[datetime] = None
 
 class AnnouncementUpdate(SQLModel):
     title: Optional[str] = None
@@ -233,3 +341,17 @@ class LoreEntryUpdate(SQLModel):
     image_url: Optional[str] = None
     era_id: Optional[int] = None
     tags: Optional[List[str]] = None
+
+class ProfileUpdate(SQLModel):
+    bio: Optional[str] = None
+    real_name: Optional[str] = None
+    gender: Optional[str] = None
+    birthdate: Optional[date] = None
+    location: Optional[str] = None
+    in_game_username: Optional[str] = None
+    in_game_activities: Optional[str] = None
+    typical_playtime: Optional[str] = None
+    use_in_game_name: Optional[bool] = None
+    social_links: Optional[Dict] = None
+    privacy_settings: Optional[Dict] = None
+    username_color: Optional[str] = None

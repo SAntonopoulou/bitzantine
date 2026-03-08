@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Notification from '../components/Notification';
 import ConfirmationModal from '../components/ConfirmationModal';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { api } from '../api';
 
 export default function AdminEvents() {
   const [view, setView] = useState('events'); // 'events' or 'templates'
@@ -18,13 +17,11 @@ export default function AdminEvents() {
     setLoading(true);
     try {
       const [eventsRes, templatesRes] = await Promise.all([
-        fetch(`${API_URL}/events?limit=999`),
-        fetch(`${API_URL}/admin/events/templates`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+        api.get('/events?limit=999'),
+        api.get('/admin/events/templates')
       ]);
-      const eventsData = await eventsRes.json();
-      const templatesData = await templatesRes.json();
-      setEvents(eventsData);
-      setTemplates(templatesData);
+      setEvents(eventsRes.data);
+      setTemplates(templatesRes.data);
     } catch (error) {
       console.error("Failed to fetch event data", error);
       setNotification({ message: 'Failed to fetch data.', type: 'error' });
@@ -51,23 +48,14 @@ export default function AdminEvents() {
     if (!itemToDelete) return;
     const { id, type } = itemToDelete;
 
-    const url = type === 'event' ? `${API_URL}/admin/events/${id}` : `${API_URL}/admin/events/templates/${id}`;
+    const url = type === 'event' ? `/admin/events/${id}` : `/admin/events/templates/${id}`;
     
     try {
-      const res = await fetch(url, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-
-      if (res.ok) {
-        setNotification({ message: `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully.`, type: 'success' });
-        fetchData(); // Refresh data
-      } else {
-        const err = await res.json();
-        setNotification({ message: `Error: ${err.detail}`, type: 'error' });
-      }
+      await api.delete(url);
+      setNotification({ message: `${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully.`, type: 'success' });
+      fetchData(); // Refresh data
     } catch (error) {
-      setNotification({ message: 'An unexpected error occurred.', type: 'error' });
+      setNotification({ message: `Error: ${error.response?.data?.detail || 'An unexpected error occurred.'}`, type: 'error' });
     } finally {
       closeDeleteModal();
     }

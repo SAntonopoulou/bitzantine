@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiClient, API_URL } from '../apiClient';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -22,7 +22,7 @@ export default function GroupManagement() {
 
   const fetchGroup = async () => {
     try {
-      const res = await apiClient.get(`/groups/${id}`);
+      const res = await api.get(`/groups/${id}`);
       setGroupData(res.data);
     } catch (err) {
       setError('Failed to load group details');
@@ -33,7 +33,7 @@ export default function GroupManagement() {
 
   const handleApprove = async (userId) => {
     try {
-      await apiClient.patch(`/groups/${id}/members/${userId}/approve`);
+      await api.patch(`/groups/${id}/members/${userId}/approve`);
       showNotification('Member approved', 'success');
       fetchGroup();
     } catch (err) {
@@ -44,7 +44,7 @@ export default function GroupManagement() {
   const confirmRemove = async () => {
     if (!memberToRemove) return;
     try {
-      await apiClient.delete(`/groups/${id}/members/${memberToRemove.user.id}`);
+      await api.delete(`/groups/${id}/members/${memberToRemove.user.id}`);
       showNotification('Member removed', 'success');
       fetchGroup();
     } catch (err) {
@@ -62,7 +62,7 @@ export default function GroupManagement() {
 
   const handlePromote = async (userId) => {
     try {
-      await apiClient.post(`/groups/${id}/officers/${userId}`);
+      await api.post(`/groups/${id}/officers/${userId}`);
       showNotification('Member promoted to Officer', 'success');
       fetchGroup();
     } catch (err) {
@@ -72,7 +72,7 @@ export default function GroupManagement() {
 
   const handleDemote = async (userId) => {
     try {
-      await apiClient.delete(`/groups/${id}/officers/${userId}`);
+      await api.delete(`/groups/${id}/officers/${userId}`);
       showNotification('Officer demoted to Member', 'success');
       fetchGroup();
     } catch (err) {
@@ -115,8 +115,8 @@ export default function GroupManagement() {
               {pendingMembers.map(m => (
                 <div key={m.user.id} className="bg-stone-800 p-4 rounded-lg border border-stone-700 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {m.user.profile?.avatar_url ? (
-                      <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
+                    {m.user.avatar_url ? (
+                      <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
                         {m.user.username[0].toUpperCase()}
@@ -155,8 +155,8 @@ export default function GroupManagement() {
                 {activeMembers.map(m => (
                   <tr key={m.user.id} className="hover:bg-stone-700/50">
                     <td className="px-6 py-4 flex items-center gap-3">
-                      {m.user.profile?.avatar_url ? (
-                        <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                      {m.user.avatar_url ? (
+                        <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                           {m.user.username[0].toUpperCase()}

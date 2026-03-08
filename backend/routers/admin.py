@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session
 from typing import List
 
 from database import get_session
-from models import User, Group, UserRole
+from models import UserRole
 from auth import RoleChecker
 
 router = APIRouter(
@@ -12,12 +12,6 @@ router = APIRouter(
     dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR]))],
 )
 
-@router.get("/users", response_model=List[User])
-async def get_all_users(session: Session = Depends(get_session)):
-    users = session.exec(select(User)).all()
-    return users
-
-@router.get("/groups", response_model=List[Group])
-async def get_all_groups(session: Session = Depends(get_session)):
-    groups = session.exec(select(Group)).all()
-    return groups
+# This file is intentionally left sparse. 
+# Specific admin routes are organized into their own files like admin_users.py and admin_events.py
+# to prevent routing conflicts and improve organization.

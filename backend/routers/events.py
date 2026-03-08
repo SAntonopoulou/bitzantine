@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import get_session
 from models import (
     Event, EventRSVP, User, RSVPStatus, EventRSVPRead, Profile, 
-    UserReadWithProfile, EventDetailResponse, EventReadWithDetails
+    UserReadWithProfile, EventDetailResponse, EventReadWithDetails, GroupRead
 )
 from auth import get_current_active_user
 
@@ -28,7 +28,8 @@ async def get_events(
 ):
     query = select(Event).where(Event.is_template == False).options(
         selectinload(Event.rsvps).selectinload(EventRSVP.user).selectinload(User.profile),
-        selectinload(Event.host).selectinload(User.profile)
+        selectinload(Event.host).selectinload(User.profile),
+        selectinload(Event.host_group)
     )
     if start:
         query = query.where(Event.date >= start)
@@ -36,21 +37,67 @@ async def get_events(
         query = query.where(Event.date <= end)
     
     events = session.exec(query.order_by(desc(Event.date)).offset(skip).limit(limit)).all()
-    return events
+    
+    response = []
+    for event in events:
+        rsvps = []
+        for rsvp in event.rsvps:
+            rsvps.append(EventRSVPRead(
+                id=rsvp.id,
+                user_id=rsvp.user_id,
+                event_id=rsvp.event_id,
+                status=rsvp.status,
+                user=UserReadWithProfile(
+                    id=rsvp.user.id,
+                    username=rsvp.user.username,
+                    display_name=rsvp.user.display_name,
+                    email=rsvp.user.email,
+                    discord_username=rsvp.user.discord_username,
+                    role=rsvp.user.role,
+                    is_active=rsvp.user.is_active,
+                    avatar_url=rsvp.user.profile.avatar_url if rsvp.user.profile else None,
+                    profile=rsvp.user.profile
+                )
+            ))
+        
+        host_with_profile = None
+        if event.host:
+            host_with_profile = UserReadWithProfile(
+                id=event.host.id,
+                username=event.host.username,
+                display_name=event.host.display_name,
+                email=event.host.email,
+                discord_username=event.host.discord_username,
+                role=event.host.role,
+                is_active=event.host.is_active,
+                avatar_url=event.host.profile.avatar_url if event.host.profile else None,
+                profile=event.host.profile
+            )
+            
+        host_group_details = None
+        if event.host_group:
+            host_group_details = GroupRead.from_orm(event.host_group)
+
+        response.append(EventReadWithDetails(
+            **event.dict(),
+            rsvps=rsvps,
+            host=host_with_profile,
+            host_group=host_group_details
+        ))
+    return response
 
 @router.get("/{event_id}", response_model=EventDetailResponse)
 async def get_event(event_id: int, session: Session = Depends(get_session)):
-    # This query now explicitly loads all required nested data.
     query = select(Event).where(Event.id == event_id, Event.is_template == False).options(
         selectinload(Event.rsvps).selectinload(EventRSVP.user).selectinload(User.profile),
-        selectinload(Event.host).selectinload(User.profile)
+        selectinload(Event.host).selectinload(User.profile),
+        selectinload(Event.host_group)
     )
     event = session.exec(query).one_or_none()
 
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Find previous and next event IDs
     previous_event_id = session.exec(
         select(Event.id)
         .where(Event.date < event.date, Event.is_template == False)
@@ -65,8 +112,53 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
         .limit(1)
     ).first()
 
+    rsvps = []
+    for rsvp in event.rsvps:
+        rsvps.append(EventRSVPRead(
+            id=rsvp.id,
+            user_id=rsvp.user_id,
+            event_id=rsvp.event_id,
+            status=rsvp.status,
+            user=UserReadWithProfile(
+                id=rsvp.user.id,
+                username=rsvp.user.username,
+                display_name=rsvp.user.display_name,
+                email=rsvp.user.email,
+                discord_username=rsvp.user.discord_username,
+                role=rsvp.user.role,
+                is_active=rsvp.user.is_active,
+                avatar_url=rsvp.user.profile.avatar_url if rsvp.user.profile else None,
+                profile=rsvp.user.profile
+            )
+        ))
+    
+    host_with_profile = None
+    if event.host:
+        host_with_profile = UserReadWithProfile(
+            id=event.host.id,
+            username=event.host.username,
+            display_name=event.host.display_name,
+            email=event.host.email,
+            discord_username=event.host.discord_username,
+            role=event.host.role,
+            is_active=event.host.is_active,
+            avatar_url=event.host.profile.avatar_url if event.host.profile else None,
+            profile=event.host.profile
+        )
+
+    host_group_details = None
+    if event.host_group:
+        host_group_details = GroupRead.from_orm(event.host_group)
+
+    event_with_details = EventReadWithDetails(
+        **event.dict(),
+        rsvps=rsvps,
+        host=host_with_profile,
+        host_group=host_group_details
+    )
+
     return EventDetailResponse(
-        event=event,
+        event=event_with_details,
         previous_event_id=previous_event_id,
         next_event_id=next_event_id,
     )
@@ -82,7 +174,6 @@ async def rsvp_for_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Check if event is full
     if status == RSVPStatus.ATTENDING and event.max_participants:
         attendees_count = session.exec(
             select(func.count(EventRSVP.id)).where(
@@ -91,7 +182,6 @@ async def rsvp_for_event(
             )
         ).one()
         
-        # Check if user is already attending to not count them in the check
         rsvp_check = session.exec(
             select(EventRSVP).where(EventRSVP.event_id == event_id, EventRSVP.user_id == user.id)
         ).first()
@@ -100,7 +190,6 @@ async def rsvp_for_event(
         if attendees_count >= event.max_participants and not is_already_attending:
              raise HTTPException(status_code=400, detail="Event is full")
 
-    # Find existing RSVP or create a new one
     rsvp = session.exec(
         select(EventRSVP).where(EventRSVP.event_id == event_id, EventRSVP.user_id == user.id)
     ).first()
@@ -115,16 +204,24 @@ async def rsvp_for_event(
     session.commit()
     session.refresh(rsvp)
     
-    # Eagerly load the user and profile to ensure it's in the response
     user_with_profile = session.exec(
         select(User).where(User.id == user.id).options(selectinload(User.profile))
     ).one()
     
-    # Construct the final response model
     return EventRSVPRead(
         id=rsvp.id,
         user_id=rsvp.user_id,
         event_id=rsvp.event_id,
         status=rsvp.status,
-        user=user_with_profile
+        user=UserReadWithProfile(
+            id=user_with_profile.id,
+            username=user_with_profile.username,
+            display_name=user_with_profile.display_name,
+            email=user_with_profile.email,
+            discord_username=user_with_profile.discord_username,
+            role=user_with_profile.role,
+            is_active=user_with_profile.is_active,
+            avatar_url=user_with_profile.profile.avatar_url if user_with_profile.profile else None,
+            profile=user_with_profile.profile
+        )
     )

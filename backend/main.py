@@ -6,9 +6,9 @@ from contextlib import asynccontextmanager
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
-from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe
+from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import events, groups, lore, announcements, admin_events, admin, admin_users
+from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users
 from typing import List
 import os
 
@@ -30,6 +30,12 @@ async def lifespan(app: FastAPI):
                 is_active=True
             )
             session.add(user)
+            session.commit()
+            session.refresh(user)
+
+            # Create a profile for the super admin
+            profile = Profile(user_id=user.id)
+            session.add(profile)
             session.commit()
     yield
 
@@ -65,6 +71,7 @@ app.include_router(announcements.router)
 app.include_router(admin_events.router)
 app.include_router(admin.router)
 app.include_router(admin_users.router)
+app.include_router(users.router)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
@@ -100,6 +107,12 @@ async def create_user(user: UserCreate, session: Session = Depends(get_session))
     session.add(db_user)
     session.commit()
     session.refresh(db_user)
+
+    # Create a profile for the new user
+    profile = Profile(user_id=db_user.id)
+    session.add(profile)
+    session.commit()
+
     return db_user
 
 @app.get("/users/me", response_model=UserReadMe)

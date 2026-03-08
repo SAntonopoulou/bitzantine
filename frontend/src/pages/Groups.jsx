@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient, API_URL } from '../apiClient';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 
@@ -12,23 +12,22 @@ export default function Groups() {
   const { showNotification } = useNotification();
 
   useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const res = await api.get('/groups');
+        setGroups(res.data);
+      } catch (err) {
+        console.error("Failed to fetch groups:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchGroups();
   }, []);
 
-  const fetchGroups = async () => {
-    try {
-      const res = await apiClient.get('/groups');
-      setGroups(res.data);
-    } catch (err) {
-      console.error("Failed to fetch groups:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleApply = async (groupId) => {
     try {
-      await apiClient.post(`/groups/${groupId}/apply`);
+      await api.post(`/groups/${groupId}/apply`);
       showNotification('Application submitted successfully!', 'success');
     } catch (err) {
       showNotification(err.response?.data?.detail || 'Failed to apply', 'error');
@@ -36,6 +35,7 @@ export default function Groups() {
   };
 
   const isMember = (groupId) => {
+    // This check might need adjustment depending on how user groups are structured in the auth context
     return currentUser?.groups?.some(g => g.id === groupId);
   };
 
@@ -67,7 +67,7 @@ export default function Groups() {
           <div key={group.id} className="bg-stone-800 rounded-xl shadow-lg overflow-hidden border border-stone-700 hover:border-amber-500 transition-all duration-300 flex flex-col">
             {group.image_url ? (
               <div className="h-48 w-full overflow-hidden">
-                <img src={`${API_URL}${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
+                <img src={`http://localhost:8000${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="h-48 w-full bg-stone-700 flex items-center justify-center">
@@ -87,8 +87,8 @@ export default function Groups() {
 
               {group.leader && (
                 <div className="flex items-center gap-3 mb-4 p-2 bg-stone-900/50 rounded-lg">
-                  {group.leader.profile?.avatar_url ? (
-                    <img src={`${API_URL}${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+                  {group.leader.avatar_url ? (
+                    <img src={`http://localhost:8000${group.leader.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
                   ) : (
                     <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                       {group.leader.username[0].toUpperCase()}
@@ -114,7 +114,7 @@ export default function Groups() {
                 {currentUser && currentUser.role !== 'user' && !isMember(group.id) && (
                   <button 
                     onClick={() => handleApply(group.id)}
-                    className="bitz-btn-sm"
+                    className="px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm"
                   >
                     Apply
                   </button>

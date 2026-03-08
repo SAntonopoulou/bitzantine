@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { apiClient, API_URL } from '../apiClient';
+import { api, API_URL } from '../api';
 
 const GroupNode = ({ group }) => (
   <div className="ml-8 border-l-2 border-stone-700 pl-6 mb-6">
@@ -27,15 +27,15 @@ const GroupNode = ({ group }) => (
           <span className="text-xs uppercase tracking-wider text-stone-500 font-bold block mb-1">Leader</span>
           {group.leader ? (
             <div className="flex items-center gap-2">
-              {group.leader.profile?.avatar_url ? (
-                <img src={`${API_URL}${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+              {group.leader.avatar_url ? (
+                <img src={`${API_URL}${group.leader.avatar_url}`} alt={group.leader.display_name || group.leader.username} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
-                  {group.leader.username[0].toUpperCase()}
+                  {(group.leader.display_name || group.leader.username)[0].toUpperCase()}
                 </div>
               )}
               <Link to={`/profile/${group.leader.username}`} className="text-stone-200 font-medium hover:text-amber-500">
-                {group.leader.username}
+                {group.leader.display_name || group.leader.username}
               </Link>
             </div>
           ) : (
@@ -49,18 +49,18 @@ const GroupNode = ({ group }) => (
             {group.officers && group.officers.length > 0 ? (
               group.officers.map(officer => (
                 <div key={officer.id} className="flex items-center gap-2 bg-stone-700 px-2 py-1 rounded hover:bg-stone-600 transition-colors">
-                  {officer.profile?.avatar_url ? (
-                    <img src={`${API_URL}${officer.profile.avatar_url}`} alt={officer.username} className="w-5 h-5 rounded-full object-cover" />
+                  {officer.avatar_url ? (
+                    <img src={`${API_URL}${officer.avatar_url}`} alt={officer.display_name || officer.username} className="w-5 h-5 rounded-full object-cover" />
                   ) : (
                     <div className="w-5 h-5 bg-stone-600 rounded-full flex items-center justify-center text-amber-500 font-bold text-[10px]">
-                      {officer.username[0].toUpperCase()}
+                      {(officer.display_name || officer.username)[0].toUpperCase()}
                     </div>
                   )}
                   <Link 
                     to={`/profile/${officer.username}`}
                     className="text-stone-300 text-sm hover:text-amber-500"
                   >
-                    {officer.username}
+                    {officer.display_name || officer.username}
                   </Link>
                 </div>
               ))
@@ -73,7 +73,7 @@ const GroupNode = ({ group }) => (
     </div>
     
     {group.children && group.children.length > 0 && (
-      <div className="mt-6">
+      <div className="mt-6 ml-4">
         {group.children.map(child => (
           <GroupNode key={child.id} group={child} />
         ))}
@@ -89,7 +89,7 @@ export default function Government() {
   useEffect(() => {
     const fetchHierarchy = async () => {
       try {
-        const res = await apiClient.get('/groups/hierarchy');
+        const res = await api.get('/groups/hierarchy');
         setHierarchy(res.data);
       } catch (err) {
         console.error("Failed to fetch hierarchy:", err);

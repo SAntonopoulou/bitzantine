@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient, API_URL } from '../apiClient';
+import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -75,8 +75,8 @@ export default function AdminGroups() {
 
   const fetchData = async () => {
     try {
-      const hRes = await apiClient.get('/groups/hierarchy');
-      const fRes = await apiClient.get('/groups');
+      const hRes = await api.get('/groups/hierarchy');
+      const fRes = await api.get('/groups');
       setHierarchy(hRes.data);
       setFlatGroups(fRes.data);
     } catch (err) {
@@ -85,13 +85,13 @@ export default function AdminGroups() {
   };
 
   const fetchUsers = async () => {
-    const res = await apiClient.get('/admin/users');
+    const res = await api.get('/admin/users');
     setUsers(res.data);
   };
 
   const handleMove = async (groupId, parentId) => {
     try {
-      await apiClient.patch(`/groups/${groupId}/move`, null, { params: { parent_id: parentId } });
+      await api.patch(`/groups/${groupId}/move`, null, { params: { parent_id: parentId } });
       showNotification('Group moved successfully', 'success');
       await fetchData();
     } catch (err) {
@@ -102,7 +102,7 @@ export default function AdminGroups() {
   const handleDelete = async () => {
     if (!groupToDelete) return;
     try {
-      await apiClient.delete(`/groups/${groupToDelete.id}`);
+      await api.delete(`/groups/${groupToDelete.id}`);
       showNotification('Group deleted successfully', 'success');
       setIsDeleteModalOpen(false);
       setGroupToDelete(null);
@@ -139,12 +139,12 @@ export default function AdminGroups() {
       }
 
       if (editingGroup) {
-        await apiClient.patch(`/groups/${editingGroup.id}`, data, {
+        await api.patch(`/groups/${editingGroup.id}`, data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         showNotification('Group updated successfully', 'success');
       } else {
-        await apiClient.post('/groups', data, {
+        await api.post('/groups', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         showNotification('Group created successfully', 'success');
@@ -226,7 +226,7 @@ export default function AdminGroups() {
                 <label className="block text-stone-400 text-sm mb-1">Group Image</label>
                 {editingGroup && editingGroup.image_url && (
                   <div className="mb-2">
-                    <img src={`${API_URL}${editingGroup.image_url}`} alt="Current" className="h-20 w-20 object-cover rounded-lg" />
+                    <img src={`http://localhost:8000${editingGroup.image_url}`} alt="Current" className="h-20 w-20 object-cover rounded-lg" />
                     <p className="text-xs text-stone-500 mt-1">Current Image</p>
                   </div>
                 )}

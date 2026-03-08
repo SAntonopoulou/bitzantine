@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { apiClient, API_URL } from '../apiClient';
+import { api, API_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -21,7 +21,7 @@ export default function GroupDetail() {
 
   const fetchGroup = async () => {
     try {
-      const res = await apiClient.get(`/groups/${id}`);
+      const res = await api.get(`/groups/${id}`);
       setGroupData(res.data);
     } catch (err) {
       setError('Failed to load group details');
@@ -32,7 +32,7 @@ export default function GroupDetail() {
 
   const handleApply = async () => {
     try {
-      await apiClient.post(`/groups/${id}/apply`);
+      await api.post(`/groups/${id}/apply`);
       showNotification('Application submitted successfully!', 'success');
       fetchGroup();
     } catch (err) {
@@ -42,7 +42,7 @@ export default function GroupDetail() {
 
   const confirmLeave = async () => {
     try {
-      await apiClient.delete(`/groups/${id}/members/${currentUser.id}`);
+      await api.delete(`/groups/${id}/members/${currentUser.id}`);
       showNotification('You have left the group', 'success');
       navigate('/groups'); // Redirect to groups list
     } catch (err) {
@@ -99,7 +99,7 @@ export default function GroupDetail() {
             </div>
             
             {!isMember && !hasPending && currentUser?.role !== 'user' && (
-              <button onClick={handleApply} className="bitz-btn">Apply to Join</button>
+              <button onClick={handleApply} className="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition-colors">Apply to Join</button>
             )}
             {hasPending && (
               <span className="bg-yellow-900/50 text-yellow-200 px-4 py-2 rounded-lg border border-yellow-700">Application Pending</span>
@@ -115,15 +115,15 @@ export default function GroupDetail() {
               <h3 className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-4">Leader</h3>
               {leaderUser ? (
                 <div className="flex items-center gap-4">
-                  {leaderUser.profile?.avatar_url ? (
-                    <img src={`${API_URL}${leaderUser.profile.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
+                  {leaderUser.avatar_url ? (
+                    <img src={`${API_URL}${leaderUser.avatar_url}`} alt={leaderUser.display_name || leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
-                      {leaderUser.username[0].toUpperCase()}
+                      {(leaderUser.display_name || leaderUser.username)[0].toUpperCase()}
                     </div>
                   )}
                   <Link to={`/profile/${leaderUser.username}`} className="text-stone-200 text-lg font-medium hover:text-amber-500">
-                    {leaderUser.username}
+                    {leaderUser.display_name || leaderUser.username}
                   </Link>
                 </div>
               ) : (
@@ -138,15 +138,15 @@ export default function GroupDetail() {
                 {members.filter(m => m.role === 'officer' && m.status === 'approved').map(m => (
                   <div key={m.user.id} className="flex items-center justify-between bg-stone-800 p-3 rounded-lg border border-stone-700">
                     <div className="flex items-center gap-3">
-                      {m.user.profile?.avatar_url ? (
-                        <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                      {m.user.avatar_url ? (
+                        <img src={`${API_URL}${m.user.avatar_url}`} alt={m.user.display_name || m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
-                          {m.user.username[0].toUpperCase()}
+                          {(m.user.display_name || m.user.username)[0].toUpperCase()}
                         </div>
                       )}
                       <Link to={`/profile/${m.user.username}`} className="text-stone-200 hover:text-amber-500">
-                        {m.user.username}
+                        {m.user.display_name || m.user.username}
                       </Link>
                     </div>
                   </div>
@@ -164,15 +164,15 @@ export default function GroupDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {members.filter(m => m.status === 'approved').map(m => (
                 <div key={m.user.id} className="bg-stone-900/50 p-4 rounded-xl border border-stone-700 text-center group relative">
-                  {m.user.profile?.avatar_url ? (
-                    <img src={`${API_URL}${m.user.profile.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
+                  {m.user.avatar_url ? (
+                    <img src={`${API_URL}${m.user.avatar_url}`} alt={m.user.display_name || m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
                   ) : (
                     <div className="w-16 h-16 bg-stone-700 rounded-full mx-auto mb-3 flex items-center justify-center text-amber-500 font-bold text-xl">
-                      {m.user.username[0].toUpperCase()}
+                      {(m.user.display_name || m.user.username)[0].toUpperCase()}
                     </div>
                   )}
                   <Link to={`/profile/${m.user.username}`} className="text-stone-200 font-medium truncate hover:text-amber-500 block">
-                    {m.user.username}
+                    {m.user.display_name || m.user.username}
                   </Link>
                   <span className="text-xs text-stone-500 uppercase tracking-wider">{m.role}</span>
                 </div>
