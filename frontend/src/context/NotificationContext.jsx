@@ -19,11 +19,13 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider value={{ showNotification }}>
       {children}
-      <Notification 
-        message={notification.message} 
-        type={notification.type} 
-        onDismiss={dismissNotification} 
-      />
+      {notification.message && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onDismiss={dismissNotification}
+        />
+      )}
     </NotificationContext.Provider>
   );
 };

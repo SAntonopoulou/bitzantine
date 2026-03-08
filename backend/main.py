@@ -6,9 +6,9 @@ from contextlib import asynccontextmanager
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
-from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile
+from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls
+from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls, home, admin_home
 from typing import List
 import os
 
@@ -37,6 +37,67 @@ async def lifespan(app: FastAPI):
             profile = Profile(user_id=user.id)
             session.add(profile)
             session.commit()
+        
+        # Initialize Home Sections if empty
+        home_sections = session.exec(select(HomeSection)).all()
+        if not home_sections:
+            default_sections = [
+                HomeSection(
+                    section_key="hero",
+                    title="The Bitzantine Empire",
+                    subtitle="Democracy. Industry. War.",
+                    content="Join the most prestigious civilization in Bitcraft. Build, trade, and conquer with honor.",
+                    image_url="https://picsum.photos/seed/bitzantine/1920/1080",
+                    cta_text="Join the Empire",
+                    cta_link="/join",
+                    order_index=1,
+                    is_visible=True
+                ),
+                HomeSection(
+                    section_key="democracy",
+                    title="Structured Government",
+                    content="A clear hierarchy ensuring order and prosperity for all citizens. We are a democratic guild where members vote on governance and shape the future.",
+                    order_index=2,
+                    is_visible=True
+                ),
+                HomeSection(
+                    section_key="military",
+                    title="THE ENEMY AT THE GATES",
+                    subtitle="War Against the Ottoadman Empire",
+                    content="Defending our borders and expanding our influence across the realm. We are sworn enemies of the Ottoadman Empire.",
+                    order_index=3,
+                    is_visible=True
+                ),
+                HomeSection(
+                    section_key="crafting",
+                    title="Organized Crafting",
+                    content="Highly organized crafting schedules allowing for massive output; resources always stocked.",
+                    order_index=4,
+                    is_visible=True
+                ),
+                HomeSection(
+                    section_key="recruitment_military",
+                    title="Join the Military",
+                    content="Protect our lands, conquer new territories, and ensure the safety of our crafters.",
+                    cta_text="ENLIST NOW",
+                    cta_link="/join?track=military",
+                    order_index=5,
+                    is_visible=True
+                ),
+                HomeSection(
+                    section_key="recruitment_industry",
+                    title="Join Industry",
+                    content="Fuel the war machine, build our cities, and master the arcane arts of crafting.",
+                    cta_text="START CRAFTING",
+                    cta_link="/join?track=industry",
+                    order_index=6,
+                    is_visible=True
+                )
+            ]
+            for section in default_sections:
+                session.add(section)
+            session.commit()
+            
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -49,7 +110,7 @@ origins = [
     "http://localhost:8000",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
-    "http://localhost:8081", # Add the new frontend port
+    "http://localhost:8081",
 ]
 
 app.add_middleware(
@@ -73,6 +134,8 @@ app.include_router(admin.router)
 app.include_router(admin_users.router)
 app.include_router(users.router)
 app.include_router(polls.router)
+app.include_router(home.router)
+app.include_router(admin_home.router)
 
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
