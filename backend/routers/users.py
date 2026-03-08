@@ -11,7 +11,7 @@ from database import get_session
 from models import (
     User, Profile, UserRead, UserReadWithProfile, ProfileUpdate, 
     UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink,
-    PrivacyLevel, UserRole
+    PrivacyLevel, UserRole, UserReadMe
 )
 from auth import get_current_active_user, get_optional_current_active_user
 
@@ -22,6 +22,40 @@ router = APIRouter(
 
 UPLOAD_DIR = "static/uploads/profiles"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@router.get("/me", response_model=UserReadMe)
+async def get_own_profile(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
+    """
+    Get all data for the currently authenticated user.
+    """
+    # The dependency already provides the user object. We just need to ensure
+    # the related data is loaded and correctly formatted.
+    
+    # Eagerly load the profile and groups if they aren't already loaded
+    # (depending on how the user was loaded in the dependency)
+    user = session.exec(
+        select(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(User.profile), selectinload(User.groups))
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Construct the response model, ensuring avatar_url is included
+    user_data = UserReadMe(
+        id=user.id,
+        username=user.username,
+        display_name=user.display_name,
+        email=user.email,
+        discord_username=user.discord_username,
+        role=user.role,
+        is_active=user.is_active,
+        avatar_url=user.profile.avatar_url if user.profile else None,
+        groups=[UserGroupRead.from_orm(g) for g in user.groups]
+    )
+    
+    return user_data
 
 @router.get("/{username}/profile", response_model=UserPublicProfile)
 async def get_user_profile(
@@ -42,7 +76,6 @@ async def get_user_profile(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Ensure profile exists
     if not user.profile:
         profile = Profile(user_id=user.id)
         session.add(profile)
@@ -52,7 +85,6 @@ async def get_user_profile(
     profile = user.profile
     privacy = profile.privacy_settings or {}
     
-    # Determine if requester can see private/members_only info
     is_owner = current_user and current_user.id == user.id
     is_staff = current_user and current_user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR]
     is_citizen_plus = current_user and current_user.role in [
@@ -60,16 +92,12 @@ async def get_user_profile(
     ]
 
     def can_see(field_name):
-        if is_owner or is_staff:
-            return True
+        if is_owner or is_staff: return True
         level = privacy.get(field_name, PrivacyLevel.PUBLIC)
-        if level == PrivacyLevel.PUBLIC:
-            return True
-        if level == PrivacyLevel.MEMBERS_ONLY and is_citizen_plus:
-            return True
+        if level == PrivacyLevel.PUBLIC: return True
+        if level == PrivacyLevel.MEMBERS_ONLY and is_citizen_plus: return True
         return False
 
-    # Mandatory Public Fields
     response_data = {
         "id": user.id,
         "username": user.username,
@@ -82,42 +110,31 @@ async def get_user_profile(
         "led_groups": []
     }
     
-    # Optional Fields based on Privacy Settings
-    if can_see("bio"):
-        response_data["bio"] = profile.bio
-    if can_see("real_name"):
-        response_data["real_name"] = profile.real_name
-    if can_see("gender"):
-        response_data["gender"] = profile.gender
-    if can_see("birthdate"):
-        response_data["birthdate"] = profile.birthdate
-    if can_see("location"):
-        response_data["location"] = profile.location
-    if can_see("typical_playtime"):
-        response_data["typical_playtime"] = profile.typical_playtime
-    if can_see("social_links"):
-        response_data["social_links"] = profile.social_links
+    if can_see("bio"): response_data["bio"] = profile.bio
+    if can_see("real_name"): response_data["real_name"] = profile.real_name
+    if can_see("gender"): response_data["gender"] = profile.gender
+    if can_see("birthdate"): response_data["birthdate"] = profile.birthdate
+    if can_see("location"): response_data["location"] = profile.location
+    if can_see("typical_playtime"): response_data["typical_playtime"] = profile.typical_playtime
+    if can_see("social_links"): response_data["social_links"] = profile.social_links
         
-    # Discord and Email (usually more restricted)
     if is_owner or is_staff or is_citizen_plus:
         response_data["discord_username"] = user.discord_username
         response_data["email"] = user.email
         
-    # Fields for editing (only populated for owner/staff)
     if is_owner or is_staff:
         response_data["in_game_username"] = profile.in_game_username
         response_data["use_in_game_name"] = profile.use_in_game_name
         response_data["privacy_settings"] = profile.privacy_settings
         
-    # Process Groups
     for group in user.led_groups:
-        response_data["led_groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
+        response_data["led_groups"].append(UserGroupRead.from_orm(group))
         
     for group in user.groups:
         if group.leader_id != user.id:
-             response_data["groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
+             response_data["groups"].append(UserGroupRead.from_orm(group))
              
-    return response_data
+    return UserPublicProfile(**response_data)
 
 @router.patch("/me/profile", response_model=UserReadWithProfile)
 async def update_own_profile(
@@ -139,15 +156,10 @@ async def update_own_profile(
         
     session.add(profile)
     session.commit()
+    session.refresh(profile)
     session.refresh(current_user)
     
-    user = session.exec(
-        select(User)
-        .where(User.id == current_user.id)
-        .options(selectinload(User.profile))
-    ).first()
-    
-    return user
+    return current_user
 
 @router.post("/me/avatar")
 async def upload_avatar(
@@ -162,7 +174,7 @@ async def upload_avatar(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    image_url = f"/{UPLOAD_DIR}/{filename}"
+    image_url = f"/{os.path.join(UPLOAD_DIR, filename)}"
     
     if not current_user.profile:
         profile = Profile(user_id=current_user.id, avatar_url=image_url)
@@ -187,7 +199,7 @@ async def upload_header(
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    image_url = f"/{UPLOAD_DIR}/{filename}"
+    image_url = f"/{os.path.join(UPLOAD_DIR, filename)}"
     
     if not current_user.profile:
         profile = Profile(user_id=current_user.id, header_image_url=image_url)

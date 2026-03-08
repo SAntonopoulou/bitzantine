@@ -89,7 +89,11 @@ export default function Navbar() {
       {user ? (
         <div className="relative" ref={profileMenuRef}>
           <button onClick={toggleProfileMenu} className="flex items-center gap-2 hover:bg-stone-700 p-2 rounded-md transition-colors">
-            <img src={user.avatar_url ? `${API_URL}${user.avatar_url}` : `https://ui-avatars.com/api/?name=${user.username}&background=292524&color=f59e0b`} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
+            <img 
+              src={user.avatar_url ? `${API_URL}${user.avatar_url}` : `https://ui-avatars.com/api/?name=${user.display_name || user.username}&background=292524&color=f59e0b`} 
+              alt="avatar" 
+              className="w-8 h-8 rounded-full object-cover" 
+            />
             <span className="font-medium text-stone-200">{user.display_name || user.username}</span>
             <ChevronDown size={16} className={`text-stone-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
           </button>
