@@ -66,6 +66,10 @@ class EventRSVPBase(SQLModel):
     status: RSVPStatus
 
 # --- Table Models ---
+class SiteSetting(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    value: str
+
 class HomeSection(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     section_key: str = Field(unique=True)
