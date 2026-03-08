@@ -5,8 +5,9 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from database import get_session
-from models import User, TokenData, UserRole
+from models import User, TokenData, UserRole, Profile
 import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-me")
@@ -49,7 +50,14 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), sessio
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user = session.exec(select(User).where(User.username == token_data.username)).first()
+    
+    # Eagerly load the profile with the user
+    user = session.exec(
+        select(User)
+        .where(User.username == token_data.username)
+        .options(selectinload(User.profile))
+    ).first()
+    
     if user is None:
         raise credentials_exception
     return user
@@ -71,7 +79,12 @@ async def get_optional_current_active_user(token: Optional[str] = Depends(oauth2
     except JWTError:
         return None
     
-    user = session.exec(select(User).where(User.username == token_data.username)).first()
+    user = session.exec(
+        select(User)
+        .where(User.username == token_data.username)
+        .options(selectinload(User.profile))
+    ).first()
+
     if user and user.is_active:
         return user
     return None

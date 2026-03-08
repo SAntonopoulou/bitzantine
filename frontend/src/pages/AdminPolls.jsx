@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
+import { format } from 'date-fns';
+import { Plus, Trash2, Lock } from 'lucide-react';
 
 const AdminPolls = () => {
   const [polls, setPolls] = useState([]);
@@ -48,15 +50,7 @@ const AdminPolls = () => {
       await api.post('/polls/', payload);
       showNotification('Poll created successfully!', 'success');
       setShowModal(false);
-      setNewPoll({ 
-        title: '', 
-        description: '', 
-        end_date: '', 
-        allow_user_options: false, 
-        allow_multiple_votes: false,
-        max_votes: 1,
-        options: ['', ''] 
-      });
+      setNewPoll({ title: '', description: '', end_date: '', allow_user_options: false, allow_multiple_votes: false, max_votes: 1, options: ['', ''] });
       fetchPolls();
     } catch (err) {
       console.error("Failed to create poll:", err);
@@ -104,22 +98,48 @@ const AdminPolls = () => {
     setNewPoll({ ...newPoll, options: newOptions });
   };
 
-  if (loading) return <div className="text-center text-stone-300 mt-10">Loading polls...</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-center text-stone-300">Loading polls...</div>;
+  if (error) return <div className="p-4 sm:p-8 text-center text-red-500">{error}</div>;
+
+  const inputStyles = "mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm";
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-amber-500 font-serif">Poll Management</h1>
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-amber-500 font-serif">Poll Management</h1>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition-colors"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition-colors"
         >
-          Create New Poll
+          <Plus size={20} /> Create New Poll
         </button>
       </div>
 
       <div className="bg-stone-800 rounded-lg shadow overflow-hidden border border-stone-700">
-        <table className="min-w-full divide-y divide-stone-700">
+        {/* Mobile Card View */}
+        <div className="md:hidden divide-y divide-stone-700">
+          {polls.map(poll => (
+            <div key={poll.id} className="p-4 space-y-3">
+              <p className="text-stone-200 font-medium">{poll.title}</p>
+              <div className="flex justify-between text-sm">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${poll.is_active ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}`}>
+                  {poll.is_active ? 'Active' : 'Closed'}
+                </span>
+                <span className="text-stone-400">{poll.total_votes} votes</span>
+              </div>
+              <div className="text-xs text-stone-500">
+                {poll.end_date ? `Ends: ${format(new Date(poll.end_date), 'MMM d, yyyy')}` : 'No End Date'}
+              </div>
+              <div className="flex justify-end gap-3 pt-2 border-t border-stone-700/50">
+                {poll.is_active && <button onClick={() => handleClosePoll(poll.id)} className="flex items-center gap-1 text-sm text-amber-500 hover:text-amber-400"><Lock size={14}/> Close</button>}
+                <button onClick={() => handleDeletePoll(poll.id)} className="flex items-center gap-1 text-sm text-red-500 hover:text-red-400"><Trash2 size={14}/> Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <table className="hidden md:table min-w-full divide-y divide-stone-700">
           <thead className="bg-stone-900">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-stone-400 uppercase tracking-wider">Title</th>
@@ -134,18 +154,12 @@ const AdminPolls = () => {
               <tr key={poll.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-stone-200 font-medium">{poll.title}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${poll.is_active ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}`}>
-                    {poll.is_active ? 'Active' : 'Closed'}
-                  </span>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${poll.is_active ? 'bg-green-900 text-green-200' : 'bg-red-900 text-red-200'}`}>{poll.is_active ? 'Active' : 'Closed'}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-stone-300">{poll.total_votes}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-stone-300">
-                  {poll.end_date ? new Date(poll.end_date).toLocaleDateString() : 'No End Date'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  {poll.is_active && (
-                      <button onClick={() => handleClosePoll(poll.id)} className="text-amber-500 hover:text-amber-400">Close</button>
-                  )}
+                <td className="px-6 py-4 whitespace-nowrap text-stone-300">{poll.end_date ? format(new Date(poll.end_date), 'MMM d, yyyy') : 'No End Date'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                  {poll.is_active && <button onClick={() => handleClosePoll(poll.id)} className="text-amber-500 hover:text-amber-400">Close</button>}
                   <button onClick={() => handleDeletePoll(poll.id)} className="text-red-500 hover:text-red-400">Delete</button>
                 </td>
               </tr>
@@ -154,7 +168,6 @@ const AdminPolls = () => {
         </table>
       </div>
 
-      {/* Create Poll Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-stone-800 rounded-lg shadow-xl max-w-lg w-full p-6 border border-stone-600 max-h-[90vh] overflow-y-auto">
@@ -162,119 +175,31 @@ const AdminPolls = () => {
             <form onSubmit={handleCreatePoll} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-stone-300">Title</label>
-                <input
-                  type="text"
-                  required
-                  value={newPoll.title}
-                  onChange={(e) => setNewPoll({ ...newPoll, title: e.target.value })}
-                  className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                />
+                <input type="text" required value={newPoll.title} onChange={(e) => setNewPoll({ ...newPoll, title: e.target.value })} className={inputStyles} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300">Description</label>
-                <textarea
-                  required
-                  value={newPoll.description}
-                  onChange={(e) => setNewPoll({ ...newPoll, description: e.target.value })}
-                  rows={3}
-                  className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                />
+                <textarea required value={newPoll.description} onChange={(e) => setNewPoll({ ...newPoll, description: e.target.value })} rows={3} className={inputStyles} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-stone-300">End Date (Optional)</label>
-                <input
-                  type="datetime-local"
-                  value={newPoll.end_date}
-                  onChange={(e) => setNewPoll({ ...newPoll, end_date: e.target.value })}
-                  className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                />
+                <input type="datetime-local" value={newPoll.end_date} onChange={(e) => setNewPoll({ ...newPoll, end_date: e.target.value })} className={inputStyles} />
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center">
-                  <input
-                    id="allow_user_options"
-                    type="checkbox"
-                    checked={newPoll.allow_user_options}
-                    onChange={(e) => setNewPoll({ ...newPoll, allow_user_options: e.target.checked })}
-                    className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900"
-                  />
-                  <label htmlFor="allow_user_options" className="ml-2 block text-sm text-stone-300">
-                    Allow users to add options?
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    id="allow_multiple_votes"
-                    type="checkbox"
-                    checked={newPoll.allow_multiple_votes}
-                    onChange={(e) => setNewPoll({ ...newPoll, allow_multiple_votes: e.target.checked })}
-                    className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900"
-                  />
-                  <label htmlFor="allow_multiple_votes" className="ml-2 block text-sm text-stone-300">
-                    Allow multiple votes?
-                  </label>
-                </div>
-
-                {newPoll.allow_multiple_votes && (
-                  <div>
-                    <label className="block text-sm font-medium text-stone-300">Max Votes Allowed</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newPoll.max_votes}
-                      onChange={(e) => setNewPoll({ ...newPoll, max_votes: parseInt(e.target.value) })}
-                      className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                    />
-                  </div>
-                )}
+              <div className="space-y-2 pt-2">
+                <div className="flex items-center"><input id="allow_user_options" type="checkbox" checked={newPoll.allow_user_options} onChange={(e) => setNewPoll({ ...newPoll, allow_user_options: e.target.checked })} className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900" /><label htmlFor="allow_user_options" className="ml-2 block text-sm text-stone-300">Allow users to add options?</label></div>
+                <div className="flex items-center"><input id="allow_multiple_votes" type="checkbox" checked={newPoll.allow_multiple_votes} onChange={(e) => setNewPoll({ ...newPoll, allow_multiple_votes: e.target.checked })} className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900" /><label htmlFor="allow_multiple_votes" className="ml-2 block text-sm text-stone-300">Allow multiple votes?</label></div>
+                {newPoll.allow_multiple_votes && (<div><label className="block text-sm font-medium text-stone-300">Max Votes Allowed</label><input type="number" min="1" value={newPoll.max_votes} onChange={(e) => setNewPoll({ ...newPoll, max_votes: parseInt(e.target.value) })} className={inputStyles} /></div>)}
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-stone-300 mb-2">Initial Options</label>
                 {newPoll.options.map((option, index) => (
-                  <div key={index} className="flex mb-2">
-                    <input
-                      type="text"
-                      value={option}
-                      onChange={(e) => handleOptionChange(index, e.target.value)}
-                      placeholder={`Option ${index + 1}`}
-                      className="flex-1 bg-stone-900 border border-stone-600 rounded-l-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeOptionField(index)}
-                      className="bg-red-900 hover:bg-red-800 text-red-200 px-3 py-2 rounded-r-md border border-l-0 border-stone-600"
-                    >
-                      X
-                    </button>
-                  </div>
+                  <div key={index} className="flex mb-2"><input type="text" value={option} onChange={(e) => handleOptionChange(index, e.target.value)} placeholder={`Option ${index + 1}`} className="flex-1 bg-stone-900 border border-stone-600 rounded-l-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm" /><button type="button" onClick={() => removeOptionField(index)} className="bg-red-900 hover:bg-red-800 text-red-200 px-3 py-2 rounded-r-md border border-l-0 border-stone-600">X</button></div>
                 ))}
-                <button
-                  type="button"
-                  onClick={addOptionField}
-                  className="mt-2 text-sm text-amber-500 hover:text-amber-400"
-                >
-                  + Add another option
-                </button>
+                <button type="button" onClick={addOptionField} className="mt-2 text-sm text-amber-500 hover:text-amber-400">+ Add another option</button>
               </div>
-
               <div className="flex justify-end space-x-3 pt-4 border-t border-stone-700">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-stone-700 hover:bg-stone-600 text-stone-200 font-bold py-2 px-4 rounded transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50"
-                >
-                  {submitting ? 'Creating...' : 'Create Poll'}
-                </button>
+                <button type="button" onClick={() => setShowModal(false)} className="bg-stone-700 hover:bg-stone-600 text-stone-200 font-bold py-2 px-4 rounded transition-colors">Cancel</button>
+                <button type="submit" disabled={submitting} className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50">{submitting ? 'Creating...' : 'Create Poll'}</button>
               </div>
             </form>
           </div>
