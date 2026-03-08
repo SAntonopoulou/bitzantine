@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, SQLModel
 from sqlalchemy.orm import selectinload
-from typing import List
+from typing import List, Optional
 
 from database import get_session
 from models import User, UserRead, UserRole, Group, UserGroupLink, Profile
@@ -13,32 +13,41 @@ router = APIRouter(
     dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR]))]
 )
 
-class UserReadWithGroups(UserRead):
-    groups: List[str] = []
-
-@router.get("/users", response_model=List[UserReadWithGroups])
+@router.get("/users")
 async def get_users(session: Session = Depends(get_session)):
     """
     Fetch all users, including their profile and assigned groups.
     """
-    result = session.exec(select(User).options(selectinload(User.groups), selectinload(User.profile)))
-    users = result.all()
-    
-    users_with_groups = []
-    for user in users:
-        group_names = [group.name for group in user.groups] if user.groups else []
-        user_data = UserReadWithGroups(
-            id=user.id,
-            username=user.username,
-            email=user.email,
-            discord_username=user.discord_username,
-            role=user.role,
-            is_active=user.is_active,
-            groups=group_names,
-            avatar_url=user.profile.avatar_url if user.profile else None
+    users = session.exec(
+        select(User).options(
+            selectinload(User.profile), 
+            selectinload(User.groups)
         )
-        users_with_groups.append(user_data)
-    return users_with_groups
+    ).all()
+    
+    response_data = []
+    for user in users:
+        if not user.profile:
+            profile = Profile(user_id=user.id)
+            session.add(profile)
+            session.commit()
+            session.refresh(user)
+
+        # Manually construct the response dictionary for each user
+        # to ensure all required fields are present.
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "discord_username": user.discord_username,
+            "role": user.role,
+            "is_active": user.is_active,
+            "groups": [group.name for group in user.groups],
+            "avatar_url": user.profile.avatar_url if user.profile else None
+        }
+        response_data.append(user_data)
+        
+    return response_data
 
 class RoleUpdateRequest(SQLModel):
     role: UserRole

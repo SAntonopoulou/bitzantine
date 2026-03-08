@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/ConfirmationModal';
 
@@ -64,7 +64,7 @@ const AdminUserManagement = () => {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
                 }
                 if (a[sortConfig.key] > b[sortConfig.key]) {
-                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                    return sort_config.direction === 'ascending' ? 1 : -1;
                 }
                 return 0;
             });
@@ -233,10 +233,10 @@ const AdminUserManagement = () => {
                             <tr key={user.id} className="hover:bg-stone-700 transition-colors">
                                 <td className="py-4">
                                     {user.avatar_url ? (
-                                        <img src={`http://localhost:8000${user.avatar_url}`} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
+                                        <img src={`${API_URL}${user.avatar_url}`} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
                                     ) : (
                                         <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
-                                            {user.username[0].toUpperCase()}
+                                            {user.username ? user.username[0].toUpperCase() : ''}
                                         </div>
                                     )}
                                 </td>
