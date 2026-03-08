@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -33,9 +33,35 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), session: Session = Depends(get_session)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if not token:
+        raise credentials_exception
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = session.exec(select(User).where(User.username == token_data.username)).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+async def get_optional_current_active_user(token: Optional[str] = Depends(oauth2_scheme), session: Session = Depends(get_session)):
     if not token:
         return None
-        
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
@@ -44,28 +70,14 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme), sessio
         token_data = TokenData(username=username)
     except JWTError:
         return None
-        
+    
     user = session.exec(select(User).where(User.username == token_data.username)).first()
-    return user
-
-async def get_current_active_user(current_user: Optional[User] = Depends(get_current_user)):
-    if not current_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-async def get_optional_current_active_user(current_user: Optional[User] = Depends(get_current_user)):
-    if current_user and not current_user.is_active:
-        return None
-    return current_user
+    if user and user.is_active:
+        return user
+    return None
 
 class RoleChecker:
-    def __init__(self, allowed_roles: list[UserRole]):
+    def __init__(self, allowed_roles: List[UserRole]):
         self.allowed_roles = allowed_roles
 
     def __call__(self, user: User = Depends(get_current_active_user)):

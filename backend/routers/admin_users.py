@@ -123,6 +123,14 @@ async def assign_group_to_user(
     if not group:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
+    # Check if link already exists
+    existing_link = session.exec(
+        select(UserGroupLink).where(UserGroupLink.user_id == user_id, UserGroupLink.group_id == group_assign.group_id)
+    ).first()
+    
+    if existing_link:
+        return # Already assigned
+
     user_group_link = UserGroupLink(user_id=user_id, group_id=group_assign.group_id)
     session.add(user_group_link)
     session.commit()

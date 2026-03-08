@@ -16,8 +16,8 @@ export default function EditEvent() {
         const [eventRes, templatesRes, usersRes, groupsRes] = await Promise.all([
           api.get(`/events/${id}`),
           api.get(`/admin/events/templates`),
-          api.get(`/admin/users`),
-          api.get(`/admin/groups`)
+          api.get(`/admin/events/form-data/users`),
+          api.get(`/admin/events/form-data/groups`)
         ]);
         
         setEvent(eventRes.data.event);

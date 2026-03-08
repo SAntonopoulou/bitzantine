@@ -283,6 +283,17 @@ class EventReadWithDetails(EventRead):
     rsvps: List[EventRSVPRead] = []
     host: Optional[UserReadWithProfile] = None
 
+class EventTemplateRead(SQLModel):
+    id: int
+    name: str
+    title: str
+    description: str
+    featured_image_url: Optional[str] = None
+    min_participants: Optional[int] = None
+    max_participants: Optional[int] = None
+    tags: List[str] = []
+    category: Optional[str] = None
+
 class EventDetailResponse(SQLModel):
     event: EventReadWithDetails
     previous_event_id: Optional[int] = None
@@ -297,7 +308,9 @@ class TokenData(SQLModel):
 
 # --- Update Models ---
 class EventUpdate(EventBase):
-    pass
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[datetime] = None
 
 class AnnouncementUpdate(SQLModel):
     title: Optional[str] = None

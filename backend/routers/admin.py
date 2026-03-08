@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session
 from typing import List
 
 from database import get_session
-from models import User, Group, UserRole
+from models import UserRole
 from auth import RoleChecker
 
 router = APIRouter(
@@ -12,4 +12,6 @@ router = APIRouter(
     dependencies=[Depends(RoleChecker([UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR]))],
 )
 
-# Redundant routes removed to avoid conflict with admin_users.py and admin_groups.py
+# This file is intentionally left sparse. 
+# Specific admin routes are organized into their own files like admin_users.py and admin_events.py
+# to prevent routing conflicts and improve organization.

@@ -8,9 +8,19 @@ export default function EditEventTemplate() {
   const [template, setTemplate] = useState(null);
 
   useEffect(() => {
-    api.get(`/admin/events/templates/${id}`)
-      .then(res => setTemplate(res.data))
-      .catch(err => console.error("Failed to fetch template", err));
+    // Since there isn't a direct endpoint to get a single template by ID in the provided backend code,
+    // we fetch all templates and find the one we need.
+    // Ideally, the backend should have a GET /admin/events/templates/{id} endpoint.
+    api.get(`/admin/events/templates`)
+      .then(res => {
+        const foundTemplate = res.data.find(t => t.id === parseInt(id));
+        if (foundTemplate) {
+          setTemplate(foundTemplate);
+        } else {
+          console.error("Template not found");
+        }
+      })
+      .catch(err => console.error("Failed to fetch templates", err));
   }, [id]);
 
   if (!template) return <div className="p-8 text-center text-stone-400">Loading...</div>;

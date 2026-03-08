@@ -35,7 +35,7 @@ const AdminUserManagement = () => {
 
     const fetchGroups = async () => {
         try {
-            const response = await api.get('/groups');
+            const response = await api.get('/admin/events/form-data/groups');
             setGroups(response.data);
         } catch (error) {
             console.error("Error fetching groups:", error);

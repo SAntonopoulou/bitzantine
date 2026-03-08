@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Editor } from '@tinymce/tinymce-react';
-import Notification from './Notification';
+import { useNotification } from '../context/NotificationContext';
 import { api } from '../api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const TINYMCE_API_KEY = import.meta.env.VITE_TINYMCE_API_KEY || 'no-api-key';
 
-export default function EventForm({ event, templates = [], users = [], groups = [], isEditing = false, isTemplate = false }) {
+export default function EventForm({ event, isEditing = false, isTemplate = false }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: '', description: '', date: '', end_time: '', timezone: 'UTC',
@@ -16,7 +16,32 @@ export default function EventForm({ event, templates = [], users = [], groups = 
     recurrence_rule: '', is_template: isTemplate, name: ''
   });
   const [imageFile, setImageFile] = useState(null);
-  const [notification, setNotification] = useState({ message: '', type: '' });
+  const { showNotification } = useNotification();
+
+  // Data for dropdowns
+  const [users, setUsers] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    // Fetch all necessary data for the form dropdowns
+    const fetchData = async () => {
+      try {
+        const [usersRes, groupsRes, templatesRes] = await Promise.all([
+          api.get('/admin/events/form-data/users'),
+          api.get('/admin/events/form-data/groups'),
+          api.get('/admin/events/templates')
+        ]);
+        setUsers(usersRes.data);
+        setGroups(groupsRes.data);
+        setTemplates(templatesRes.data);
+      } catch (error) {
+        showNotification('Failed to load form data. Please try again.', 'error');
+        console.error("Failed to fetch form data:", error);
+      }
+    };
+    fetchData();
+  }, [showNotification]);
 
   useEffect(() => {
     if (isEditing && event) {
@@ -104,16 +129,15 @@ export default function EventForm({ event, templates = [], users = [], groups = 
 
     try {
       await api[method](url, payload);
-      setNotification({ message: 'Success!', type: 'success' });
+      showNotification('Success!', 'success');
       setTimeout(() => navigate('/admin/events'), 2000);
     } catch (error) {
-      setNotification({ message: `Error: ${error.response?.data?.detail || 'An unexpected error occurred.'}`, type: 'error' });
+      showNotification(`Error: ${error.response?.data?.detail || 'An unexpected error occurred.'}`, 'error');
     }
   };
 
   return (
     <div className="p-8 max-w-4xl mx-auto text-stone-200">
-      <Notification message={notification.message} type={notification.type} onDismiss={() => setNotification({ message: '', type: '' })} />
       <Link to="/admin/events" className="text-amber-600 hover:underline mb-8 block">&larr; Back to Events</Link>
       <h1 className="text-3xl font-bold mb-8 text-amber-500">
         {isEditing ? `Edit ${isTemplate ? 'Template' : 'Event'}` : `Create New ${isTemplate ? 'Template' : 'Event'}`}
@@ -196,7 +220,7 @@ export default function EventForm({ event, templates = [], users = [], groups = 
                 <label className="block text-sm font-medium text-stone-300 mb-1">Host User</label>
                 <select name="host_user_id" value={formData.host_user_id} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2">
                     <option value="">Select a user...</option>
-                    {users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                    {users.map(u => <option key={u.id} value={u.id}>{u.display_name || u.username}</option>)}
                 </select>
             </div>
             <div>
@@ -223,7 +247,7 @@ export default function EventForm({ event, templates = [], users = [], groups = 
             <label className="block text-sm font-medium text-stone-300 mb-1">Featured Image</label>
             {isEditing && formData.featured_image_url && (
               <div className="mt-2 mb-2">
-                <img src={`http://localhost:8000${formData.featured_image_url}`} alt="Current featured" className="w-full h-auto rounded-md object-cover" style={{ maxHeight: '300px' }} />
+                <img src={`${API_URL}${formData.featured_image_url}`} alt="Current featured" className="w-full h-auto rounded-md object-cover" style={{ maxHeight: '300px' }} />
               </div>
             )}
             <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="mt-1 block w-full text-sm text-stone-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-amber-800 file:text-amber-200 hover:file:bg-amber-700"/>
