@@ -75,9 +75,45 @@ export default function EventDetail() {
             {format(zonedStartTime, 'eeee, MMMM d, yyyy')} at {format(zonedStartTime, 'h:mm a zzz')}
             {zonedEndTime && ` to ${format(zonedEndTime, 'h:mm a zzz')}`}
           </div>
-          <div className="prose prose-invert max-w-none mb-8 whitespace-pre-wrap text-stone-300">
-            {event.description}
+
+          {/* Host Information */}
+          <div className="flex items-center gap-4 mb-6 text-stone-300">
+            {event.host && (
+              <div className="flex items-center gap-2">
+                <span className="text-stone-400">Hosted by:</span>
+                <Link to={`/profile/${event.host.username}`} className="flex items-center gap-2 hover:text-amber-400">
+                  {event.host.avatar_url ? (
+                    <img src={`${API_URL}${event.host.avatar_url}`} alt={event.host.display_name} className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 bg-stone-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      {event.host.display_name[0]}
+                    </div>
+                  )}
+                  <span className="font-medium">{event.host.display_name}</span>
+                </Link>
+              </div>
+            )}
+            {event.host_group && (
+              <div className="flex items-center gap-2">
+                <span className="text-stone-400">Group:</span>
+                <Link to={`/groups/${event.host_group.id}`} className="flex items-center gap-2 hover:text-amber-400">
+                  {event.host_group.image_url ? (
+                    <img src={`${API_URL}${event.host_group.image_url}`} alt={event.host_group.name} className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 bg-stone-700 rounded-full flex items-center justify-center text-xs font-bold">
+                      {event.host_group.name[0]}
+                    </div>
+                  )}
+                  <span className="font-medium">{event.host_group.name}</span>
+                </Link>
+              </div>
+            )}
           </div>
+
+          <div 
+            className="prose prose-invert max-w-none mb-8 whitespace-pre-wrap text-stone-300"
+            dangerouslySetInnerHTML={{ __html: event.description }}
+          />
           
           <div className="bg-stone-900/50 p-6 rounded-lg border border-stone-700">
             <h2 className="text-2xl font-bold text-amber-400 mb-6">RSVP</h2>

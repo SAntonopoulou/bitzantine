@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import get_session
 from models import (
     Event, EventRSVP, User, RSVPStatus, EventRSVPRead, Profile, 
-    UserReadWithProfile, EventDetailResponse, EventReadWithDetails
+    UserReadWithProfile, EventDetailResponse, EventReadWithDetails, GroupRead
 )
 from auth import get_current_active_user
 
@@ -28,7 +28,8 @@ async def get_events(
 ):
     query = select(Event).where(Event.is_template == False).options(
         selectinload(Event.rsvps).selectinload(EventRSVP.user).selectinload(User.profile),
-        selectinload(Event.host).selectinload(User.profile)
+        selectinload(Event.host).selectinload(User.profile),
+        selectinload(Event.host_group)
     )
     if start:
         query = query.where(Event.date >= start)
@@ -72,11 +73,16 @@ async def get_events(
                 avatar_url=event.host.profile.avatar_url if event.host.profile else None,
                 profile=event.host.profile
             )
+            
+        host_group_details = None
+        if event.host_group:
+            host_group_details = GroupRead.from_orm(event.host_group)
 
         response.append(EventReadWithDetails(
             **event.dict(),
             rsvps=rsvps,
-            host=host_with_profile
+            host=host_with_profile,
+            host_group=host_group_details
         ))
     return response
 
@@ -84,7 +90,8 @@ async def get_events(
 async def get_event(event_id: int, session: Session = Depends(get_session)):
     query = select(Event).where(Event.id == event_id, Event.is_template == False).options(
         selectinload(Event.rsvps).selectinload(EventRSVP.user).selectinload(User.profile),
-        selectinload(Event.host).selectinload(User.profile)
+        selectinload(Event.host).selectinload(User.profile),
+        selectinload(Event.host_group)
     )
     event = session.exec(query).one_or_none()
 
@@ -139,10 +146,15 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
             profile=event.host.profile
         )
 
+    host_group_details = None
+    if event.host_group:
+        host_group_details = GroupRead.from_orm(event.host_group)
+
     event_with_details = EventReadWithDetails(
         **event.dict(),
         rsvps=rsvps,
-        host=host_with_profile
+        host=host_with_profile,
+        host_group=host_group_details
     )
 
     return EventDetailResponse(

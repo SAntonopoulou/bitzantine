@@ -129,6 +129,7 @@ class User(SQLModel, table=True):
 class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     host: Optional[User] = Relationship()
+    host_group: Optional["Group"] = Relationship()
     rsvps: List["EventRSVP"] = Relationship(back_populates="event", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class EventRSVP(EventRSVPBase, table=True):
@@ -279,9 +280,15 @@ class EventRSVPRead(EventRSVPBase):
 class EventRead(EventBase):
     id: int
 
+class GroupRead(SQLModel):
+    id: int
+    name: str
+    image_url: Optional[str] = None
+
 class EventReadWithDetails(EventRead):
     rsvps: List[EventRSVPRead] = []
     host: Optional[UserReadWithProfile] = None
+    host_group: Optional[GroupRead] = None
 
 class EventTemplateRead(SQLModel):
     id: int
