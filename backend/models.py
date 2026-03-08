@@ -13,6 +13,11 @@ class UserRole(str, PyEnum):
     CITIZEN = "citizen"
     USER = "user"
 
+class PrivacyLevel(str, PyEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    MEMBERS_ONLY = "members_only" # Citizens and above
+
 class RSVPStatus(str, PyEnum):
     ATTENDING = "attending"
     INTERESTED = "interested"
@@ -81,7 +86,18 @@ class Profile(SQLModel, table=True):
     
     # JSON Fields
     social_links: Dict = Field(default={}, sa_column=Column(JSON))
-    privacy_settings: Dict = Field(default={}, sa_column=Column(JSON))
+    
+    # Privacy Settings (JSON)
+    # Example: {"bio": "public", "real_name": "private", ...}
+    privacy_settings: Dict = Field(default={
+        "bio": PrivacyLevel.PUBLIC,
+        "real_name": PrivacyLevel.PUBLIC,
+        "location": PrivacyLevel.PUBLIC,
+        "birthdate": PrivacyLevel.PUBLIC,
+        "gender": PrivacyLevel.PUBLIC,
+        "typical_playtime": PrivacyLevel.PUBLIC,
+        "social_links": PrivacyLevel.PUBLIC
+    }, sa_column=Column(JSON))
     
     user_id: int = Field(foreign_key="user.id")
     user: Optional["User"] = Relationship(back_populates="profile")
@@ -235,6 +251,7 @@ class UserPublicProfile(SQLModel):
     discord_username: Optional[str] = None
     email: Optional[str] = None
     social_links: Optional[Dict] = None
+    typical_playtime: Optional[str] = None
     
     groups: List[UserGroupRead] = []
     led_groups: List[UserGroupRead] = []

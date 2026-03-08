@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { 
@@ -11,7 +11,11 @@ import {
   Eye, 
   EyeOff, 
   Plus, 
-  Trash2 
+  Trash2,
+  Shield,
+  Globe,
+  Lock,
+  Users
 } from 'lucide-react';
 
 function getCroppedImg(image, crop, fileName) {
@@ -46,6 +50,42 @@ function getCroppedImg(image, crop, fileName) {
   });
 }
 
+const PrivacySelector = ({ label, value, onChange }) => {
+  const options = [
+    { id: 'public', label: 'Public', icon: Globe, color: 'text-green-500' },
+    { id: 'members_only', label: 'Members Only', icon: Users, color: 'text-blue-500' },
+    { id: 'private', label: 'Private', icon: Lock, color: 'text-red-500' },
+  ];
+
+  return (
+    <div className="flex flex-col space-y-2">
+      <label className="text-xs font-bold uppercase tracking-wider text-stone-500">{label} Privacy</label>
+      <div className="flex bg-stone-900/50 rounded-lg p-1 border border-stone-700">
+        {options.map((opt) => {
+          const Icon = opt.icon;
+          const isActive = value === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => onChange(opt.id)}
+              className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                isActive 
+                  ? 'bg-stone-700 text-amber-500 shadow-sm' 
+                  : 'text-stone-500 hover:text-stone-300'
+              }`}
+              title={opt.label}
+            >
+              <Icon className={`w-3.5 h-3.5 ${isActive ? opt.color : ''}`} />
+              <span className="hidden sm:inline">{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 export default function EditProfile() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -64,14 +104,13 @@ export default function EditProfile() {
     typical_playtime: '',
     social_links: {},
     privacy_settings: {
-      show_bio: true,
-      show_real_name: false,
-      show_gender: false,
-      show_birthdate: false,
-      show_location: false,
-      show_discord: false,
-      show_email: false,
-      show_social_links: true
+      bio: 'public',
+      real_name: 'public',
+      location: 'public',
+      birthdate: 'public',
+      gender: 'public',
+      typical_playtime: 'public',
+      social_links: 'public'
     },
     username_color: '#FFFFFF'
   });
@@ -113,8 +152,8 @@ export default function EditProfile() {
           username_color: data.username_color || '#FFFFFF'
         });
         
-        if (data.avatar_url) setAvatarPreview(`http://localhost:8000${data.avatar_url}`);
-        if (data.header_image_url) setHeaderPreview(`http://localhost:8000${data.header_image_url}`);
+        if (data.avatar_url) setAvatarPreview(`${API_URL}${data.avatar_url}`);
+        if (data.header_image_url) setHeaderPreview(`${API_URL}${data.header_image_url}`);
         
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -132,12 +171,12 @@ export default function EditProfile() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handlePrivacyToggle = (field) => {
+  const handlePrivacyChange = (field, level) => {
     setFormData(prev => ({
       ...prev,
       privacy_settings: {
         ...prev.privacy_settings,
-        [field]: !prev.privacy_settings[field]
+        [field]: level
       }
     }));
   };
@@ -261,7 +300,10 @@ export default function EditProfile() {
       <div className="min-h-screen bg-stone-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto bg-stone-800 rounded-lg shadow-lg overflow-hidden border border-stone-700">
           <div className="px-6 py-4 border-b border-stone-700 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-amber-500">Edit Profile</h1>
+            <div className="flex items-center gap-3">
+              <Shield className="w-6 h-6 text-amber-500" />
+              <h1 className="text-2xl font-bold text-amber-500">Edit Profile</h1>
+            </div>
             <button 
               onClick={() => navigate(`/profile/${user.username}`)}
               className="text-stone-400 hover:text-stone-200"
@@ -330,33 +372,52 @@ export default function EditProfile() {
             {/* Identity Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Identity</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-stone-400">Bio</label>
-                  <textarea name="bio" rows="3" value={formData.bio} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" placeholder="Tell us about yourself..." />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div className="col-span-2 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Bio</label>
+                    <textarea name="bio" rows="3" value={formData.bio} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" placeholder="Tell us about yourself..." />
+                  </div>
+                  <PrivacySelector label="Bio" value={formData.privacy_settings.bio} onChange={(val) => handlePrivacyChange('bio', val)} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-400">Real Name</label>
-                  <input type="text" name="real_name" value={formData.real_name} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Real Name</label>
+                    <input type="text" name="real_name" value={formData.real_name} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  </div>
+                  <PrivacySelector label="Real Name" value={formData.privacy_settings.real_name} onChange={(val) => handlePrivacyChange('real_name', val)} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-400">Location</label>
-                  <input type="text" name="location" value={formData.location} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Location</label>
+                    <input type="text" name="location" value={formData.location} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  </div>
+                  <PrivacySelector label="Location" value={formData.privacy_settings.location} onChange={(val) => handlePrivacyChange('location', val)} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-400">Birthdate</label>
-                  <input type="date" name="birthdate" value={formData.birthdate} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Birthdate</label>
+                    <input type="date" name="birthdate" value={formData.birthdate} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  </div>
+                  <PrivacySelector label="Birthdate" value={formData.privacy_settings.birthdate} onChange={(val) => handlePrivacyChange('birthdate', val)} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-400">Gender</label>
-                  <select name="gender" value={formData.gender} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
-                    <option value="">Select...</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Non-binary">Non-binary</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Gender</label>
+                    <select name="gender" value={formData.gender} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
+                      <option value="">Select...</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                  <PrivacySelector label="Gender" value={formData.privacy_settings.gender} onChange={(val) => handlePrivacyChange('gender', val)} />
                 </div>
               </div>
             </div>
@@ -364,17 +425,20 @@ export default function EditProfile() {
             {/* Gaming Info Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Gaming Profile</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-stone-400">In-Game Username</label>
+                  <label className="block text-sm font-medium text-stone-400 mb-1">In-Game Username</label>
                   <input type="text" name="in_game_username" value={formData.in_game_username} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-400">Typical Playtime</label>
-                  <input type="text" name="typical_playtime" value={formData.typical_playtime} onChange={handleInputChange} placeholder="e.g., Weeknights 8pm EST" className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-stone-400 mb-1">Typical Playtime</label>
+                    <input type="text" name="typical_playtime" value={formData.typical_playtime} onChange={handleInputChange} placeholder="e.g., Weeknights 8pm EST" className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  </div>
+                  <PrivacySelector label="Playtime" value={formData.privacy_settings.typical_playtime} onChange={(val) => handlePrivacyChange('typical_playtime', val)} />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-stone-400">In-Game Activities</label>
+                  <label className="block text-sm font-medium text-stone-400 mb-1">In-Game Activities</label>
                   <textarea name="in_game_activities" rows="2" value={formData.in_game_activities} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" placeholder="What do you usually do in-game?" />
                 </div>
               </div>
@@ -383,29 +447,32 @@ export default function EditProfile() {
             {/* Social Links Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Social Links</h2>
-              <div className="space-y-4">
-                {Object.entries(formData.social_links).map(([platform, url]) => (
-                  <div key={platform} className="flex items-center space-x-2">
-                    <div className="flex-1 p-2 bg-stone-700/50 border border-stone-600 rounded-md flex justify-between items-center">
-                      <span className="font-medium capitalize text-stone-300">{platform}</span>
-                      <span className="text-sm text-stone-400 truncate max-w-xs">{url}</span>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  {Object.entries(formData.social_links).map(([platform, url]) => (
+                    <div key={platform} className="flex items-center space-x-2">
+                      <div className="flex-1 p-2 bg-stone-700/50 border border-stone-600 rounded-md flex justify-between items-center">
+                        <span className="font-medium capitalize text-stone-300">{platform}</span>
+                        <span className="text-sm text-stone-400 truncate max-w-xs">{url}</span>
+                      </div>
+                      <button type="button" onClick={() => removeSocialLink(platform)} className="p-2 text-red-500 hover:bg-red-900/50 rounded-full transition-colors"><Trash2 className="w-5 h-5" /></button>
                     </div>
-                    <button type="button" onClick={() => removeSocialLink(platform)} className="p-2 text-red-500 hover:bg-red-900/50 rounded-full transition-colors"><Trash2 className="w-5 h-5" /></button>
+                  ))}
+                  <div className="flex space-x-2">
+                    <select value={newSocialPlatform} onChange={(e) => setNewSocialPlatform(e.target.value)} className="block w-1/3 rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
+                      <option value="">Platform...</option>
+                      <option value="twitter">Twitter</option>
+                      <option value="twitch">Twitch</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="discord">Discord Server</option>
+                      <option value="website">Website</option>
+                    </select>
+                    <input type="text" value={newSocialUrl} onChange={(e) => setNewSocialUrl(e.target.value)} placeholder="URL" className="block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                    <button type="button" onClick={addSocialLink} disabled={!newSocialPlatform || !newSocialUrl} className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-stone-600 hover:bg-stone-500 disabled:opacity-50"><Plus className="w-4 h-4" /></button>
                   </div>
-                ))}
-                <div className="flex space-x-2">
-                  <select value={newSocialPlatform} onChange={(e) => setNewSocialPlatform(e.target.value)} className="block w-1/3 rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
-                    <option value="">Platform...</option>
-                    <option value="twitter">Twitter</option>
-                    <option value="twitch">Twitch</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="discord">Discord Server</option>
-                    <option value="website">Website</option>
-                  </select>
-                  <input type="text" value={newSocialUrl} onChange={(e) => setNewSocialUrl(e.target.value)} placeholder="URL" className="block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
-                  <button type="button" onClick={addSocialLink} disabled={!newSocialPlatform || !newSocialUrl} className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-stone-600 hover:bg-stone-500 disabled:opacity-50"><Plus className="w-4 h-4" /></button>
                 </div>
+                <PrivacySelector label="Social Links" value={formData.privacy_settings.social_links} onChange={(val) => handlePrivacyChange('social_links', val)} />
               </div>
             </div>
 

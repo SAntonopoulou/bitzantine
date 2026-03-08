@@ -10,9 +10,10 @@ from datetime import date
 from database import get_session
 from models import (
     User, Profile, UserRead, UserReadWithProfile, ProfileUpdate, 
-    UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink
+    UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink,
+    PrivacyLevel, UserRole
 )
-from auth import get_current_active_user
+from auth import get_current_active_user, get_optional_current_active_user
 
 router = APIRouter(
     prefix="/users",
@@ -23,7 +24,11 @@ UPLOAD_DIR = "static/uploads/profiles"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.get("/{username}/profile", response_model=UserPublicProfile)
-async def get_user_profile(username: str, session: Session = Depends(get_session)):
+async def get_user_profile(
+    username: str, 
+    session: Session = Depends(get_session),
+    current_user: Optional[User] = Depends(get_optional_current_active_user)
+):
     user = session.exec(
         select(User)
         .where(User.username == username)
@@ -39,7 +44,6 @@ async def get_user_profile(username: str, session: Session = Depends(get_session
     
     # Ensure profile exists
     if not user.profile:
-        # Create empty profile if not exists
         profile = Profile(user_id=user.id)
         session.add(profile)
         session.commit()
@@ -48,6 +52,23 @@ async def get_user_profile(username: str, session: Session = Depends(get_session
     profile = user.profile
     privacy = profile.privacy_settings or {}
     
+    # Determine if requester can see private/members_only info
+    is_owner = current_user and current_user.id == user.id
+    is_staff = current_user and current_user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR]
+    is_citizen_plus = current_user and current_user.role in [
+        UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.OFFICER, UserRole.CITIZEN
+    ]
+
+    def can_see(field_name):
+        if is_owner or is_staff:
+            return True
+        level = privacy.get(field_name, PrivacyLevel.PUBLIC)
+        if level == PrivacyLevel.PUBLIC:
+            return True
+        if level == PrivacyLevel.MEMBERS_ONLY and is_citizen_plus:
+            return True
+        return False
+
     # Mandatory Public Fields
     response_data = {
         "id": user.id,
@@ -60,32 +81,32 @@ async def get_user_profile(username: str, session: Session = Depends(get_session
         "led_groups": []
     }
     
-    # Optional Public Fields based on Privacy Settings
-    if privacy.get("show_bio", True):
+    # Optional Fields based on Privacy Settings
+    if can_see("bio"):
         response_data["bio"] = profile.bio
-    if privacy.get("show_real_name", False):
+    if can_see("real_name"):
         response_data["real_name"] = profile.real_name
-    if privacy.get("show_gender", False):
+    if can_see("gender"):
         response_data["gender"] = profile.gender
-    if privacy.get("show_birthdate", False):
+    if can_see("birthdate"):
         response_data["birthdate"] = profile.birthdate
-    if privacy.get("show_location", False):
+    if can_see("location"):
         response_data["location"] = profile.location
-    if privacy.get("show_discord", False):
-        response_data["discord_username"] = user.discord_username
-    if privacy.get("show_email", False):
-        response_data["email"] = user.email
-    if privacy.get("show_social_links", True):
+    if can_see("typical_playtime"):
+        response_data["typical_playtime"] = profile.typical_playtime
+    if can_see("social_links"):
         response_data["social_links"] = profile.social_links
         
+    # Discord and Email (usually more restricted)
+    if is_owner or is_staff or is_citizen_plus:
+        response_data["discord_username"] = user.discord_username
+        response_data["email"] = user.email
+        
     # Process Groups
-    # Led Groups
     for group in user.led_groups:
         response_data["led_groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
         
-    # Member Groups (excluding led groups)
     for group in user.groups:
-        # Check if user is just a member/officer but not the main leader (already covered in led_groups)
         if group.leader_id != user.id:
              response_data["groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
              
@@ -97,7 +118,6 @@ async def update_own_profile(
     current_user: User = Depends(get_current_active_user),
     session: Session = Depends(get_session)
 ):
-    # Ensure profile exists
     if not current_user.profile:
         profile = Profile(user_id=current_user.id)
         session.add(profile)
@@ -114,7 +134,6 @@ async def update_own_profile(
     session.commit()
     session.refresh(current_user)
     
-    # Re-fetch to ensure all relationships are loaded if needed, though for this return type it might be simple
     user = session.exec(
         select(User)
         .where(User.id == current_user.id)
