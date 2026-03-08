@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -37,6 +38,9 @@ import GroupDetail from './pages/GroupDetail';
 import GroupManagement from './pages/GroupManagement';
 import Vote from './pages/Vote';
 import Settings from './pages/Settings';
+import Polls from './pages/Polls';
+import PollDetail from './pages/PollDetail';
+import AdminPolls from './pages/AdminPolls';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -84,6 +88,8 @@ export default function App() {
               <Route path="/groups/:id/manage" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupManagement /></ProtectedRoute>} />
               <Route path="/vote" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Vote /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
+              <Route path="/polls" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Polls /></ProtectedRoute>} />
+              <Route path="/polls/:id" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><PollDetail /></ProtectedRoute>} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminDashboard /></ProtectedRoute>} />
@@ -102,6 +108,7 @@ export default function App() {
               <Route path="/admin/events/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><EditEvent /></ProtectedRoute>} />
               <Route path="/admin/events/templates/add" element={<ProtectedRoute roles={['admin', 'super_admin']}><AddEventTemplate /></ProtectedRoute>} />
               <Route path="/admin/events/templates/edit/:id" element={<ProtectedRoute roles={['admin', 'super_admin']}><EditEventTemplate /></ProtectedRoute>} />
+              <Route path="/admin/polls" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminPolls /></ProtectedRoute>} />
             </Routes>
           </div>
         </NotificationProvider>

@@ -46,6 +46,14 @@ export default function AdminDashboard() {
             Manage Events
           </Link>
         </div>
+
+        <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
+          <h2 className="text-xl font-bold text-amber-400 mb-4">Polls Management</h2>
+          <p className="text-stone-400 mb-6 flex-grow">Create, edit, and manage community polls.</p>
+          <Link to="/admin/polls" className="bitz-btn w-full text-center mt-auto">
+            Manage Polls
+          </Link>
+        </div>
       </div>
     </div>
   );

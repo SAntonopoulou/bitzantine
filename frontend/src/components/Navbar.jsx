@@ -17,7 +17,7 @@ export default function Navbar() {
         {user ? (
           <>
             <Link to="/groups" className="hover:text-gray-300">Groups</Link>
-            <Link to="/vote" className="hover:text-gray-300">Vote</Link>
+            <Link to="/polls" className="hover:text-gray-300">Polls</Link>
             <Link to={`/profile/${user.username}`} className="hover:text-gray-300">Profile</Link>
             <Link to="/settings" className="hover:text-gray-300">Settings</Link>
             {['admin', 'super_admin'].includes(user.role) && (
