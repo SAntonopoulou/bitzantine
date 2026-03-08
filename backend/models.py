@@ -119,6 +119,9 @@ class User(SQLModel, table=True):
     rsvps: List["EventRSVP"] = Relationship(back_populates="user")
     groups: List["Group"] = Relationship(back_populates="members", link_model=UserGroupLink)
     led_groups: List["Group"] = Relationship(back_populates="leader")
+    
+    polls: List["Poll"] = Relationship(back_populates="author")
+    poll_votes: List["PollVote"] = Relationship(back_populates="user")
 
     @property
     def display_name(self) -> str:
@@ -200,6 +203,41 @@ class LoreEntry(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     era: Optional[LoreEra] = Relationship(back_populates="entries")
     author: Optional[User] = Relationship(back_populates="lore_entries")
+
+class Poll(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    description: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    end_date: Optional[datetime] = None
+    is_active: bool = Field(default=True)
+    allow_user_options: bool = Field(default=False)
+    
+    author_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    author: Optional["User"] = Relationship(back_populates="polls")
+    
+    options: List["PollOption"] = Relationship(back_populates="poll", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    votes: List["PollVote"] = Relationship(back_populates="poll", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+
+class PollOption(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    text: str
+    poll_id: int = Field(foreign_key="poll.id")
+    created_by_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    
+    poll: Optional[Poll] = Relationship(back_populates="options")
+    votes: List["PollVote"] = Relationship(back_populates="option", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
+    created_by: Optional["User"] = Relationship()
+
+class PollVote(SQLModel, table=True):
+    user_id: int = Field(foreign_key="user.id", primary_key=True)
+    poll_id: int = Field(foreign_key="poll.id", primary_key=True)
+    option_id: int = Field(foreign_key="polloption.id")
+    voted_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    user: "User" = Relationship(back_populates="poll_votes")
+    poll: "Poll" = Relationship(back_populates="votes")
+    option: "PollOption" = Relationship(back_populates="votes")
 
 # --- API Models (Pydantic) ---
 class UserCreate(SQLModel):
