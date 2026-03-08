@@ -73,6 +73,7 @@ async def get_user_profile(
     response_data = {
         "id": user.id,
         "username": user.username,
+        "display_name": user.display_name,
         "avatar_url": profile.avatar_url,
         "header_image_url": profile.header_image_url,
         "username_color": profile.username_color,
@@ -101,6 +102,12 @@ async def get_user_profile(
     if is_owner or is_staff or is_citizen_plus:
         response_data["discord_username"] = user.discord_username
         response_data["email"] = user.email
+        
+    # Fields for editing (only populated for owner/staff)
+    if is_owner or is_staff:
+        response_data["in_game_username"] = profile.in_game_username
+        response_data["use_in_game_name"] = profile.use_in_game_name
+        response_data["privacy_settings"] = profile.privacy_settings
         
     # Process Groups
     for group in user.led_groups:

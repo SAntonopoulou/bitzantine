@@ -15,7 +15,8 @@ import {
   Shield,
   Globe,
   Lock,
-  Users
+  Users,
+  User as UserIcon
 } from 'lucide-react';
 
 function getCroppedImg(image, crop, fileName) {
@@ -102,6 +103,7 @@ export default function EditProfile() {
     in_game_username: '',
     in_game_activities: '',
     typical_playtime: '',
+    use_in_game_name: false,
     social_links: {},
     privacy_settings: {
       bio: 'public',
@@ -144,6 +146,7 @@ export default function EditProfile() {
           in_game_username: data.in_game_username || '',
           in_game_activities: data.in_game_activities || '',
           typical_playtime: data.typical_playtime || '',
+          use_in_game_name: data.use_in_game_name || false,
           social_links: data.social_links || {},
           privacy_settings: {
             ...formData.privacy_settings,
@@ -167,8 +170,11 @@ export default function EditProfile() {
   }, [user]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const handlePrivacyChange = (field, level) => {
@@ -260,7 +266,12 @@ export default function EditProfile() {
         await api.post('/users/me/header', headerData);
       }
 
-      await api.patch('/users/me/profile', formData);
+      // Clean up data before sending to avoid 422 errors
+      const submissionData = { ...formData };
+      if (submissionData.birthdate === "") submissionData.birthdate = null;
+      if (submissionData.gender === "") submissionData.gender = null;
+
+      await api.patch('/users/me/profile', submissionData);
       
       if (refreshUser) await refreshUser();
       
@@ -331,6 +342,19 @@ export default function EditProfile() {
                     value={formData.username_color}
                     onChange={handleInputChange}
                     className="mt-1 block w-full h-10 rounded-md border-stone-600 bg-stone-700"
+                  />
+                </div>
+                <div className="flex items-center gap-3 bg-stone-900/30 p-4 rounded-lg border border-stone-700">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-stone-200">Use In-Game Name</label>
+                    <p className="text-xs text-stone-500">Display your character name instead of username</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    name="use_in_game_name"
+                    checked={formData.use_in_game_name}
+                    onChange={handleInputChange}
+                    className="w-5 h-5 rounded border-stone-600 bg-stone-700 text-amber-500 focus:ring-amber-500"
                   />
                 </div>
               </div>

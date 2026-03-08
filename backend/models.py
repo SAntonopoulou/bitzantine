@@ -84,11 +84,13 @@ class Profile(SQLModel, table=True):
     in_game_activities: Optional[str] = None # Text
     typical_playtime: Optional[str] = None
     
+    # Display Settings
+    use_in_game_name: bool = Field(default=False)
+    
     # JSON Fields
     social_links: Dict = Field(default={}, sa_column=Column(JSON))
     
     # Privacy Settings (JSON)
-    # Example: {"bio": "public", "real_name": "private", ...}
     privacy_settings: Dict = Field(default={
         "bio": PrivacyLevel.PUBLIC,
         "real_name": PrivacyLevel.PUBLIC,
@@ -117,6 +119,12 @@ class User(SQLModel, table=True):
     rsvps: List["EventRSVP"] = Relationship(back_populates="user")
     groups: List["Group"] = Relationship(back_populates="members", link_model=UserGroupLink)
     led_groups: List["Group"] = Relationship(back_populates="leader")
+
+    @property
+    def display_name(self) -> str:
+        if self.profile and self.profile.use_in_game_name and self.profile.in_game_username:
+            return self.profile.in_game_username
+        return self.username
 
 class Event(EventBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -202,6 +210,7 @@ class UserCreate(SQLModel):
 class UserRead(SQLModel):
     id: int
     username: str
+    display_name: Optional[str] = None
     email: str
     discord_username: Optional[str] = None
     role: UserRole
@@ -228,6 +237,7 @@ class ProfileRead(SQLModel):
     in_game_username: Optional[str] = None
     in_game_activities: Optional[str] = None
     typical_playtime: Optional[str] = None
+    use_in_game_name: bool = False
     social_links: Dict = {}
     privacy_settings: Dict = {}
 
@@ -237,6 +247,7 @@ class UserReadWithProfile(UserRead):
 class UserPublicProfile(SQLModel):
     id: int
     username: str
+    display_name: Optional[str] = None
     avatar_url: Optional[str] = None
     header_image_url: Optional[str] = None
     username_color: Optional[str] = None
@@ -252,6 +263,11 @@ class UserPublicProfile(SQLModel):
     email: Optional[str] = None
     social_links: Optional[Dict] = None
     typical_playtime: Optional[str] = None
+    
+    # Fields for editing (only populated for owner/staff)
+    in_game_username: Optional[str] = None
+    use_in_game_name: Optional[bool] = None
+    privacy_settings: Optional[Dict] = None
     
     groups: List[UserGroupRead] = []
     led_groups: List[UserGroupRead] = []
@@ -315,6 +331,7 @@ class ProfileUpdate(SQLModel):
     in_game_username: Optional[str] = None
     in_game_activities: Optional[str] = None
     typical_playtime: Optional[str] = None
+    use_in_game_name: Optional[bool] = None
     social_links: Optional[Dict] = None
     privacy_settings: Optional[Dict] = None
     username_color: Optional[str] = None

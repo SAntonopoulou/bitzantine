@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import { 
   MapPin, 
   Calendar, 
@@ -63,7 +63,7 @@ export default function Profile() {
       <div className="relative h-64 w-full bg-stone-700">
         {profile.header_image_url ? (
           <img 
-            src={`http://localhost:8000${profile.header_image_url}`} 
+            src={`${API_URL}${profile.header_image_url}`} 
             alt="Header" 
             className="w-full h-full object-cover"
           />
@@ -82,13 +82,13 @@ export default function Profile() {
               <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-stone-900 bg-stone-800 overflow-hidden shadow-lg">
                 {profile.avatar_url ? (
                   <img 
-                    src={`http://localhost:8000${profile.avatar_url}`} 
+                    src={`${API_URL}${profile.avatar_url}`} 
                     alt={profile.username} 
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-stone-500 text-4xl font-bold">
-                    {profile.username.charAt(0).toUpperCase()}
+                    {(profile.display_name || profile.username).charAt(0).toUpperCase()}
                   </div>
                 )}
               </div>
@@ -99,10 +99,13 @@ export default function Profile() {
                   className="text-3xl font-bold text-white drop-shadow-md"
                   style={{ color: profile.username_color || '#FFFFFF' }}
                 >
-                  {profile.username}
+                  {profile.display_name || profile.username}
                 </h1>
+                {profile.display_name && profile.display_name !== profile.username && (
+                  <p className="text-stone-500 text-sm font-medium">@{profile.username}</p>
+                )}
                 {profile.real_name && (
-                  <p className="text-stone-300 font-medium drop-shadow-sm">{profile.real_name}</p>
+                  <p className="text-stone-300 font-medium drop-shadow-sm mt-1">{profile.real_name}</p>
                 )}
               </div>
             </div>
