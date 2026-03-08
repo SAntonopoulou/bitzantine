@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNotification } from '../context/NotificationContext';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -72,7 +72,7 @@ export default function GroupDetail() {
       <div className="bg-stone-800 rounded-2xl shadow-2xl overflow-hidden border border-stone-700">
         {group.image_url && (
           <div className="h-64 w-full overflow-hidden">
-            <img src={`http://localhost:8000${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
+            <img src={`${API_URL}${group.image_url}`} alt={group.name} className="w-full h-full object-cover" />
           </div>
         )}
         
@@ -116,14 +116,14 @@ export default function GroupDetail() {
               {leaderUser ? (
                 <div className="flex items-center gap-4">
                   {leaderUser.avatar_url ? (
-                    <img src={`http://localhost:8000${leaderUser.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
+                    <img src={`${API_URL}${leaderUser.avatar_url}`} alt={leaderUser.display_name || leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
-                      {leaderUser.username[0].toUpperCase()}
+                      {(leaderUser.display_name || leaderUser.username)[0].toUpperCase()}
                     </div>
                   )}
                   <Link to={`/profile/${leaderUser.username}`} className="text-stone-200 text-lg font-medium hover:text-amber-500">
-                    {leaderUser.username}
+                    {leaderUser.display_name || leaderUser.username}
                   </Link>
                 </div>
               ) : (
@@ -139,14 +139,14 @@ export default function GroupDetail() {
                   <div key={m.user.id} className="flex items-center justify-between bg-stone-800 p-3 rounded-lg border border-stone-700">
                     <div className="flex items-center gap-3">
                       {m.user.avatar_url ? (
-                        <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                        <img src={`${API_URL}${m.user.avatar_url}`} alt={m.user.display_name || m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
-                          {m.user.username[0].toUpperCase()}
+                          {(m.user.display_name || m.user.username)[0].toUpperCase()}
                         </div>
                       )}
                       <Link to={`/profile/${m.user.username}`} className="text-stone-200 hover:text-amber-500">
-                        {m.user.username}
+                        {m.user.display_name || m.user.username}
                       </Link>
                     </div>
                   </div>
@@ -165,14 +165,14 @@ export default function GroupDetail() {
               {members.filter(m => m.status === 'approved').map(m => (
                 <div key={m.user.id} className="bg-stone-900/50 p-4 rounded-xl border border-stone-700 text-center group relative">
                   {m.user.avatar_url ? (
-                    <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
+                    <img src={`${API_URL}${m.user.avatar_url}`} alt={m.user.display_name || m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
                   ) : (
                     <div className="w-16 h-16 bg-stone-700 rounded-full mx-auto mb-3 flex items-center justify-center text-amber-500 font-bold text-xl">
-                      {m.user.username[0].toUpperCase()}
+                      {(m.user.display_name || m.user.username)[0].toUpperCase()}
                     </div>
                   )}
                   <Link to={`/profile/${m.user.username}`} className="text-stone-200 font-medium truncate hover:text-amber-500 block">
-                    {m.user.username}
+                    {m.user.display_name || m.user.username}
                   </Link>
                   <span className="text-xs text-stone-500 uppercase tracking-wider">{m.role}</span>
                 </div>

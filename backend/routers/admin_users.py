@@ -38,6 +38,7 @@ async def get_users(session: Session = Depends(get_session)):
         user_data = {
             "id": user.id,
             "username": user.username,
+            "display_name": user.display_name,
             "email": user.email,
             "discord_username": user.discord_username,
             "role": user.role,

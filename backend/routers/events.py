@@ -37,7 +37,6 @@ async def get_events(
     
     events = session.exec(query.order_by(desc(Event.date)).offset(skip).limit(limit)).all()
     
-    # Manually construct the response to include avatar_url
     response = []
     for event in events:
         rsvps = []
@@ -50,6 +49,7 @@ async def get_events(
                 user=UserReadWithProfile(
                     id=rsvp.user.id,
                     username=rsvp.user.username,
+                    display_name=rsvp.user.display_name,
                     email=rsvp.user.email,
                     discord_username=rsvp.user.discord_username,
                     role=rsvp.user.role,
@@ -64,6 +64,7 @@ async def get_events(
             host_with_profile = UserReadWithProfile(
                 id=event.host.id,
                 username=event.host.username,
+                display_name=event.host.display_name,
                 email=event.host.email,
                 discord_username=event.host.discord_username,
                 role=event.host.role,
@@ -81,7 +82,6 @@ async def get_events(
 
 @router.get("/{event_id}", response_model=EventDetailResponse)
 async def get_event(event_id: int, session: Session = Depends(get_session)):
-    # This query now explicitly loads all required nested data.
     query = select(Event).where(Event.id == event_id, Event.is_template == False).options(
         selectinload(Event.rsvps).selectinload(EventRSVP.user).selectinload(User.profile),
         selectinload(Event.host).selectinload(User.profile)
@@ -91,7 +91,6 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Find previous and next event IDs
     previous_event_id = session.exec(
         select(Event.id)
         .where(Event.date < event.date, Event.is_template == False)
@@ -106,7 +105,6 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
         .limit(1)
     ).first()
 
-    # Manually construct the response to include avatar_url
     rsvps = []
     for rsvp in event.rsvps:
         rsvps.append(EventRSVPRead(
@@ -117,6 +115,7 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
             user=UserReadWithProfile(
                 id=rsvp.user.id,
                 username=rsvp.user.username,
+                display_name=rsvp.user.display_name,
                 email=rsvp.user.email,
                 discord_username=rsvp.user.discord_username,
                 role=rsvp.user.role,
@@ -131,6 +130,7 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
         host_with_profile = UserReadWithProfile(
             id=event.host.id,
             username=event.host.username,
+            display_name=event.host.display_name,
             email=event.host.email,
             discord_username=event.host.discord_username,
             role=event.host.role,
@@ -162,7 +162,6 @@ async def rsvp_for_event(
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Check if event is full
     if status == RSVPStatus.ATTENDING and event.max_participants:
         attendees_count = session.exec(
             select(func.count(EventRSVP.id)).where(
@@ -171,7 +170,6 @@ async def rsvp_for_event(
             )
         ).one()
         
-        # Check if user is already attending to not count them in the check
         rsvp_check = session.exec(
             select(EventRSVP).where(EventRSVP.event_id == event_id, EventRSVP.user_id == user.id)
         ).first()
@@ -180,7 +178,6 @@ async def rsvp_for_event(
         if attendees_count >= event.max_participants and not is_already_attending:
              raise HTTPException(status_code=400, detail="Event is full")
 
-    # Find existing RSVP or create a new one
     rsvp = session.exec(
         select(EventRSVP).where(EventRSVP.event_id == event_id, EventRSVP.user_id == user.id)
     ).first()
@@ -195,12 +192,10 @@ async def rsvp_for_event(
     session.commit()
     session.refresh(rsvp)
     
-    # Eagerly load the user and profile to ensure it's in the response
     user_with_profile = session.exec(
         select(User).where(User.id == user.id).options(selectinload(User.profile))
     ).one()
     
-    # Construct the final response model
     return EventRSVPRead(
         id=rsvp.id,
         user_id=rsvp.user_id,
@@ -209,6 +204,7 @@ async def rsvp_for_event(
         user=UserReadWithProfile(
             id=user_with_profile.id,
             username=user_with_profile.username,
+            display_name=user_with_profile.display_name,
             email=user_with_profile.email,
             discord_username=user_with_profile.discord_username,
             role=user_with_profile.role,

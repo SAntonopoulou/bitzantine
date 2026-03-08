@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { format } from 'date-fns';
 import { utcToZonedTime } from 'date-fns-tz';
-import { api } from '../api';
+import { api, API_URL } from '../api';
 import { useNotification } from '../context/NotificationContext';
 
 export default function EventDetail() {
@@ -62,7 +62,7 @@ export default function EventDetail() {
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
       <div className="bg-stone-800 rounded-lg shadow-xl overflow-hidden">
         {event.featured_image_url && (
-          <img src={`http://localhost:8000${event.featured_image_url}`} alt={event.title} className="w-full h-96 object-cover" />
+          <img src={`${API_URL}${event.featured_image_url}`} alt={event.title} className="w-full h-96 object-cover" />
         )}
         <div className="p-8">
           <div className="flex justify-between items-start mb-4">
@@ -112,12 +112,12 @@ export default function EventDetail() {
                   </h3>
                   <div className="flex flex-wrap gap-3">
                     {attendees.map(rsvp => (
-                      <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.username} className="group relative">
+                      <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.display_name || rsvp.user.username} className="group relative">
                         {rsvp.user.avatar_url ? (
-                          <img src={`http://localhost:8000${rsvp.user.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-green-600 group-hover:border-green-400 transition-colors" />
+                          <img src={`${API_URL}${rsvp.user.avatar_url}`} alt={rsvp.user.display_name || rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-green-600 group-hover:border-green-400 transition-colors" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-stone-300 font-bold border-2 border-green-600 group-hover:border-green-400 transition-colors">
-                            {rsvp.user.username[0].toUpperCase()}
+                            {(rsvp.user.display_name || rsvp.user.username)[0].toUpperCase()}
                           </div>
                         )}
                       </Link>
@@ -134,12 +134,12 @@ export default function EventDetail() {
                   </h3>
                   <div className="flex flex-wrap gap-3">
                     {interested.map(rsvp => (
-                      <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.username} className="group relative">
+                      <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.display_name || rsvp.user.username} className="group relative">
                         {rsvp.user.avatar_url ? (
-                          <img src={`http://localhost:8000${rsvp.user.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-amber-600 group-hover:border-amber-400 transition-colors" />
+                          <img src={`${API_URL}${rsvp.user.avatar_url}`} alt={rsvp.user.display_name || rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-amber-600 group-hover:border-amber-400 transition-colors" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-stone-300 font-bold border-2 border-amber-600 group-hover:border-amber-400 transition-colors">
-                            {rsvp.user.username[0].toUpperCase()}
+                            {(rsvp.user.display_name || rsvp.user.username)[0].toUpperCase()}
                           </div>
                         )}
                       </Link>

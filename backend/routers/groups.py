@@ -41,11 +41,13 @@ def get_group_tree(session: Session, parent_id: Optional[int] = None):
             "leader": {
                 "id": group.leader.id,
                 "username": group.leader.username,
+                "display_name": group.leader.display_name,
                 "avatar_url": group.leader.profile.avatar_url if group.leader.profile else None
             } if group.leader else None,
             "officers": [{
                 "id": officer.id,
                 "username": officer.username,
+                "display_name": officer.display_name,
                 "avatar_url": officer.profile.avatar_url if officer.profile else None
             } for officer in officers],
             "children": get_group_tree(session, group.id)
@@ -77,6 +79,7 @@ def get_group(id: int, session: Session = Depends(get_session)):
         "members": [{"user": {
             "id": m[0].id,
             "username": m[0].username,
+            "display_name": m[0].display_name,
             "avatar_url": m[0].profile.avatar_url if m[0].profile else None
         }, "role": m[1], "status": m[2]} for m in members_data]
     }
