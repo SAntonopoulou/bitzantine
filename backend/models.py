@@ -66,6 +66,18 @@ class EventRSVPBase(SQLModel):
     status: RSVPStatus
 
 # --- Table Models ---
+class HomeSection(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    section_key: str = Field(unique=True)
+    title: str
+    subtitle: Optional[str] = None
+    content: str
+    image_url: Optional[str] = None
+    cta_text: Optional[str] = None
+    cta_link: Optional[str] = None
+    order_index: int
+    is_visible: bool = Field(default=True)
+
 class Profile(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     bio: Optional[str] = None
@@ -353,6 +365,30 @@ class Token(SQLModel):
 
 class TokenData(SQLModel):
     username: Optional[str] = None
+
+class HomeSectionRead(SQLModel):
+    id: int
+    section_key: str
+    title: str
+    subtitle: Optional[str] = None
+    content: str
+    image_url: Optional[str] = None
+    cta_text: Optional[str] = None
+    cta_link: Optional[str] = None
+    order_index: int
+    is_visible: bool
+
+class HomeSectionUpdate(SQLModel):
+    id: Optional[int] = None
+    section_key: Optional[str] = None
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    cta_text: Optional[str] = None
+    cta_link: Optional[str] = None
+    order_index: Optional[int] = None
+    is_visible: Optional[bool] = None
 
 # --- Update Models ---
 class EventUpdate(EventBase):

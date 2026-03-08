@@ -71,7 +71,7 @@ export default function Login() {
           </div>
           <p className="text-center text-stone-500 text-sm mt-8">
             Don't have an account?{' '}
-            <Link to="/register" className="font-bold text-amber-600 hover:text-amber-500">
+            <Link to="/join" className="font-bold text-amber-600 hover:text-amber-500">
               Register here
             </Link>
           </p>

@@ -41,6 +41,7 @@ import Settings from './pages/Settings';
 import Polls from './pages/Polls';
 import PollDetail from './pages/PollDetail';
 import AdminPolls from './pages/AdminPolls';
+import HomeEditor from './pages/admin/HomeEditor';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -93,6 +94,7 @@ export default function App() {
               
               {/* Admin Routes */}
               <Route path="/admin" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/home-editor" element={<ProtectedRoute roles={['admin', 'super_admin']}><HomeEditor /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute roles={['admin', 'super_admin', 'moderator']}><AdminUserManagement /></ProtectedRoute>} />
               <Route path="/admin/groups" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminGroups /></ProtectedRoute>} />
               <Route path="/admin/lore" element={<ProtectedRoute roles={['admin', 'super_admin']}><AdminLore /></ProtectedRoute>} />

@@ -7,6 +7,14 @@ export default function AdminDashboard() {
       <h1 className="text-4xl font-bold text-amber-500 mb-8">Admin Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="bg-stone-800 p-6 rounded-lg flex flex-col border border-amber-900/50 shadow-lg hover:border-amber-500 transition-all">
+          <h2 className="text-xl font-bold text-amber-400 mb-4">Homepage CMS</h2>
+          <p className="text-stone-400 mb-6 flex-grow">Edit the main landing page content, images, and layout.</p>
+          <Link to="/admin/home-editor" className="bitz-btn w-full text-center mt-auto bg-amber-700 hover:bg-amber-600">
+            Edit Homepage
+          </Link>
+        </div>
+
         <div className="bg-stone-800 p-6 rounded-lg flex flex-col">
           <h2 className="text-xl font-bold text-amber-400 mb-4">User Management</h2>
           <p className="text-stone-400 mb-6 flex-grow">Approve new users, manage roles, and assign groups.</p>
