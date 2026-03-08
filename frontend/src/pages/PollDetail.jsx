@@ -13,9 +13,10 @@ const PollDetail = () => {
   const [poll, setPoll] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState([]);
   const [newOptionText, setNewOptionText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [viewResults, setViewResults] = useState(false);
 
   useEffect(() => {
     fetchPoll();
@@ -25,6 +26,14 @@ const PollDetail = () => {
     try {
       const response = await api.get(`/polls/${id}`);
       setPoll(response.data);
+      // Pre-select user's votes if they exist
+      if (response.data.user_votes && response.data.user_votes.length > 0) {
+          setSelectedOptions(response.data.user_votes);
+          setViewResults(true);
+      }
+      if (!response.data.is_active) {
+          setViewResults(true);
+      }
     } catch (err) {
       console.error("Failed to fetch poll:", err);
       setError("Failed to load poll details.");
@@ -33,11 +42,27 @@ const PollDetail = () => {
     }
   };
 
+  const handleOptionSelect = (optionId) => {
+      if (poll.allow_multiple_votes) {
+          if (selectedOptions.includes(optionId)) {
+              setSelectedOptions(selectedOptions.filter(id => id !== optionId));
+          } else {
+              if (poll.max_votes && selectedOptions.length >= poll.max_votes) {
+                  showNotification(`You can only select up to ${poll.max_votes} options.`, 'error');
+                  return;
+              }
+              setSelectedOptions([...selectedOptions, optionId]);
+          }
+      } else {
+          setSelectedOptions([optionId]);
+      }
+  };
+
   const handleVote = async () => {
-    if (!selectedOption) return;
+    if (selectedOptions.length === 0) return;
     setSubmitting(true);
     try {
-      await api.post(`/polls/${id}/vote`, { option_id: selectedOption });
+      await api.post(`/polls/${id}/vote`, { option_ids: selectedOptions });
       showNotification('Vote cast successfully!', 'success');
       fetchPoll(); // Refresh to show results
     } catch (err) {
@@ -55,8 +80,6 @@ const PollDetail = () => {
       const response = await api.post(`/polls/${id}/options`, { text: newOptionText });
       setNewOptionText('');
       showNotification('Option added successfully!', 'success');
-      // Optionally vote for the new option immediately
-      // await api.post(`/polls/${id}/vote`, { option_id: response.data.id });
       fetchPoll();
     } catch (err) {
       console.error("Add option failed:", err);
@@ -70,32 +93,21 @@ const PollDetail = () => {
   if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
   if (!poll) return <div className="text-center text-stone-300 mt-10">Poll not found.</div>;
 
-  const hasVoted = poll.user_vote_option_id !== null;
+  const hasVoted = poll.user_votes && poll.user_votes.length > 0;
   const isClosed = !poll.is_active;
-  const showResults = hasVoted || isClosed;
 
   // Prepare data for chart
   const chartData = poll.options.map(opt => ({
     name: opt.text,
     votes: opt.vote_count,
-    isUserVote: opt.id === poll.user_vote_option_id
+    isUserVote: poll.user_votes.includes(opt.id)
   }));
-
-  // Find winner if closed
-  let winnerId = null;
-  if (isClosed && poll.options.length > 0) {
-      const maxVotes = Math.max(...poll.options.map(o => o.vote_count));
-      if (maxVotes > 0) {
-          // Handle ties? Just picking first for now or highlighting all
-          // winnerId logic can be complex with ties
-      }
-  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
       <div className="bg-stone-800 rounded-lg shadow-lg p-8 border border-stone-700">
         <h1 className="text-3xl font-bold text-amber-500 mb-2 font-serif">{poll.title}</h1>
-        <div className="flex items-center space-x-4 text-sm text-stone-400 mb-6">
+        <div className="flex flex-wrap items-center gap-4 text-sm text-stone-400 mb-6">
             <span>{poll.total_votes} votes</span>
             <span>•</span>
             <span>{poll.is_active ? 'Open' : 'Closed'}</span>
@@ -105,22 +117,28 @@ const PollDetail = () => {
                     <span>Ends: {new Date(poll.end_date).toLocaleDateString()}</span>
                 </>
             )}
+            {poll.allow_multiple_votes && (
+                <>
+                    <span>•</span>
+                    <span className="text-amber-400">Multiple Choice (Max {poll.max_votes})</span>
+                </>
+            )}
         </div>
         
         <p className="text-stone-300 mb-8 text-lg">{poll.description}</p>
 
-        {!showResults ? (
+        {!viewResults ? (
           // Voting View
           <div className="space-y-4">
             {poll.options.map(option => (
-              <label key={option.id} className={`flex items-center p-4 rounded border cursor-pointer transition-colors ${selectedOption === option.id ? 'bg-stone-700 border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-700'}`}>
+              <label key={option.id} className={`flex items-center p-4 rounded border cursor-pointer transition-colors ${selectedOptions.includes(option.id) ? 'bg-stone-700 border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-700'}`}>
                 <input
-                  type="radio"
+                  type={poll.allow_multiple_votes ? "checkbox" : "radio"}
                   name="poll-option"
                   value={option.id}
-                  checked={selectedOption === option.id}
-                  onChange={() => setSelectedOption(option.id)}
-                  className="form-radio h-5 w-5 text-amber-500 bg-stone-800 border-stone-600 focus:ring-amber-500"
+                  checked={selectedOptions.includes(option.id)}
+                  onChange={() => handleOptionSelect(option.id)}
+                  className={`form-${poll.allow_multiple_votes ? 'checkbox' : 'radio'} h-5 w-5 text-amber-500 bg-stone-800 border-stone-600 focus:ring-amber-500 rounded${poll.allow_multiple_votes ? '' : '-full'}`}
                 />
                 <span className="ml-3 text-stone-200">{option.text}</span>
               </label>
@@ -148,13 +166,24 @@ const PollDetail = () => {
                 </div>
             )}
 
-            <button
-              onClick={handleVote}
-              disabled={!selectedOption || submitting}
-              className="w-full mt-6 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? 'Voting...' : 'Vote'}
-            </button>
+            <div className="flex gap-4 mt-6">
+                <button
+                onClick={handleVote}
+                disabled={selectedOptions.length === 0 || submitting}
+                className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                {submitting ? 'Voting...' : (hasVoted ? 'Update Vote' : 'Vote')}
+                </button>
+                
+                {hasVoted && (
+                    <button 
+                        onClick={() => setViewResults(true)}
+                        className="px-4 py-3 bg-stone-700 hover:bg-stone-600 text-stone-200 rounded transition-colors"
+                    >
+                        Cancel
+                    </button>
+                )}
+            </div>
           </div>
         ) : (
           // Results View
@@ -181,7 +210,7 @@ const PollDetail = () => {
             <div className="space-y-3">
                 {poll.options.sort((a, b) => b.vote_count - a.vote_count).map(option => {
                     const percentage = poll.total_votes > 0 ? Math.round((option.vote_count / poll.total_votes) * 100) : 0;
-                    const isUserVote = option.id === poll.user_vote_option_id;
+                    const isUserVote = poll.user_votes.includes(option.id);
                     
                     return (
                         <div key={option.id} className="relative pt-1">
@@ -205,9 +234,18 @@ const PollDetail = () => {
                 })}
             </div>
             
-            {isClosed && (
+            {isClosed ? (
                 <div className="mt-8 p-4 bg-stone-900 rounded border border-stone-700 text-center">
                     <p className="text-stone-400">This poll is closed.</p>
+                </div>
+            ) : (
+                <div className="mt-8 text-center">
+                    <button 
+                        onClick={() => setViewResults(false)}
+                        className="text-amber-500 hover:text-amber-400 underline"
+                    >
+                        Change Vote
+                    </button>
                 </div>
             )}
           </div>

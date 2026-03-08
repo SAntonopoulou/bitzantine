@@ -13,6 +13,8 @@ const AdminPolls = () => {
     description: '',
     end_date: '',
     allow_user_options: false,
+    allow_multiple_votes: false,
+    max_votes: 1,
     options: ['', '']
   });
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +48,15 @@ const AdminPolls = () => {
       await api.post('/polls/', payload);
       showNotification('Poll created successfully!', 'success');
       setShowModal(false);
-      setNewPoll({ title: '', description: '', end_date: '', allow_user_options: false, options: ['', ''] });
+      setNewPoll({ 
+        title: '', 
+        description: '', 
+        end_date: '', 
+        allow_user_options: false, 
+        allow_multiple_votes: false,
+        max_votes: 1,
+        options: ['', ''] 
+      });
       fetchPolls();
     } catch (err) {
       console.error("Failed to create poll:", err);
@@ -179,17 +189,46 @@ const AdminPolls = () => {
                   className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
                 />
               </div>
-              <div className="flex items-center">
-                <input
-                  id="allow_user_options"
-                  type="checkbox"
-                  checked={newPoll.allow_user_options}
-                  onChange={(e) => setNewPoll({ ...newPoll, allow_user_options: e.target.checked })}
-                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900"
-                />
-                <label htmlFor="allow_user_options" className="ml-2 block text-sm text-stone-300">
-                  Allow users to add options?
-                </label>
+              
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <input
+                    id="allow_user_options"
+                    type="checkbox"
+                    checked={newPoll.allow_user_options}
+                    onChange={(e) => setNewPoll({ ...newPoll, allow_user_options: e.target.checked })}
+                    className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900"
+                  />
+                  <label htmlFor="allow_user_options" className="ml-2 block text-sm text-stone-300">
+                    Allow users to add options?
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    id="allow_multiple_votes"
+                    type="checkbox"
+                    checked={newPoll.allow_multiple_votes}
+                    onChange={(e) => setNewPoll({ ...newPoll, allow_multiple_votes: e.target.checked })}
+                    className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-stone-600 rounded bg-stone-900"
+                  />
+                  <label htmlFor="allow_multiple_votes" className="ml-2 block text-sm text-stone-300">
+                    Allow multiple votes?
+                  </label>
+                </div>
+
+                {newPoll.allow_multiple_votes && (
+                  <div>
+                    <label className="block text-sm font-medium text-stone-300">Max Votes Allowed</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newPoll.max_votes}
+                      onChange={(e) => setNewPoll({ ...newPoll, max_votes: parseInt(e.target.value) })}
+                      className="mt-1 block w-full bg-stone-900 border border-stone-600 rounded-md shadow-sm py-2 px-3 text-stone-200 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm"
+                    />
+                  </div>
+                )}
               </div>
               
               <div>

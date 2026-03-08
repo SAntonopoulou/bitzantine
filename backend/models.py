@@ -212,6 +212,8 @@ class Poll(SQLModel, table=True):
     end_date: Optional[datetime] = None
     is_active: bool = Field(default=True)
     allow_user_options: bool = Field(default=False)
+    allow_multiple_votes: bool = Field(default=False)
+    max_votes: Optional[int] = Field(default=1)
     
     author_id: Optional[int] = Field(default=None, foreign_key="user.id")
     author: Optional["User"] = Relationship(back_populates="polls")
@@ -230,8 +232,9 @@ class PollOption(SQLModel, table=True):
     created_by: Optional["User"] = Relationship()
 
 class PollVote(SQLModel, table=True):
-    user_id: int = Field(foreign_key="user.id", primary_key=True)
-    poll_id: int = Field(foreign_key="poll.id", primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    poll_id: int = Field(foreign_key="poll.id")
     option_id: int = Field(foreign_key="polloption.id")
     voted_at: datetime = Field(default_factory=datetime.utcnow)
     
