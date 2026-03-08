@@ -14,7 +14,9 @@ export default function HomeEditor() {
   const fetchSections = async () => {
     try {
       const response = await api.get('/admin/home/all');
-      setSections(response.data);
+      // Ensure sections are sorted by order_index initially
+      const sortedSections = response.data.sort((a, b) => a.order_index - b.order_index);
+      setSections(sortedSections);
     } catch (error) {
       console.error("Failed to fetch sections:", error);
       setMessage({ type: 'error', text: 'Failed to load sections.' });
@@ -48,8 +50,15 @@ export default function HomeEditor() {
     setSaving(true);
     setMessage(null);
     try {
-      await api.put('/admin/home/sections', sections);
+      // Ensure order_index is correctly set before saving
+      const sectionsToSave = sections.map((section, index) => ({
+        ...section,
+        order_index: index + 1,
+      }));
+      await api.put('/admin/home/sections', sectionsToSave);
       setMessage({ type: 'success', text: 'Homepage updated successfully!' });
+      // Refetch to ensure data consistency, especially order
+      fetchSections();
     } catch (error) {
       console.error("Failed to save sections:", error);
       setMessage({ type: 'error', text: 'Failed to save changes.' });
@@ -65,22 +74,19 @@ export default function HomeEditor() {
     } else if (direction === 'down' && index < newSections.length - 1) {
       [newSections[index], newSections[index + 1]] = [newSections[index + 1], newSections[index]];
     }
-    
-    // Reassign order_index based on new array position
-    const reordered = newSections.map((s, i) => ({ ...s, order_index: i + 1 }));
-    setSections(reordered);
+    setSections(newSections);
   };
 
-  if (loading) return <div className="p-8 text-amber-500">Loading editor...</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-amber-500 text-center">Loading editor...</div>;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto bg-stone-900 min-h-screen text-stone-200">
-      <div className="flex justify-between items-center mb-8 border-b border-stone-700 pb-4">
-        <h1 className="text-3xl font-bold text-amber-500">Homepage CMS</h1>
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto bg-stone-900 min-h-screen text-stone-200">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 border-b border-stone-700 pb-4 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-amber-500">Homepage CMS</h1>
         <button 
           onClick={handleSave} 
           disabled={saving}
-          className={`px-6 py-2 rounded font-bold ${saving ? 'bg-stone-600' : 'bg-green-600 hover:bg-green-700'} text-white transition-colors`}
+          className={`w-full sm:w-auto px-6 py-2 rounded font-bold ${saving ? 'bg-stone-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white transition-colors`}
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
@@ -94,21 +100,23 @@ export default function HomeEditor() {
 
       <div className="space-y-8">
         {sections.map((section, index) => (
-          <div key={section.id} className="bg-stone-800 p-6 rounded-lg border border-stone-700 shadow-lg relative">
+          <div key={section.id} className="bg-stone-800 p-4 sm:p-6 rounded-lg border border-stone-700 shadow-lg relative">
             <div className="absolute top-4 right-4 flex gap-2">
               <button 
                 onClick={() => moveSection(index, 'up')} 
                 disabled={index === 0}
-                className="p-2 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30"
+                className="p-2 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Move up"
               >
-                ⬆️
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 01.707.293l5 5a1 1 0 01-1.414 1.414L11 6.414V16a1 1 0 11-2 0V6.414L5.707 9.707a1 1 0 01-1.414-1.414l5-5A1 1 0 0110 3z" clipRule="evenodd" /></svg>
               </button>
               <button 
                 onClick={() => moveSection(index, 'down')} 
                 disabled={index === sections.length - 1}
-                className="p-2 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30"
+                className="p-2 bg-stone-700 hover:bg-stone-600 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Move down"
               >
-                ⬇️
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 17a1 1 0 01-.707-.293l-5-5a1 1 0 011.414-1.414L9 13.586V4a1 1 0 112 0v9.586l3.293-3.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 17z" clipRule="evenodd" /></svg>
               </button>
             </div>
 
@@ -163,9 +171,9 @@ export default function HomeEditor() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-stone-400 mb-1">Image</label>
-                  <div className="flex gap-4 items-start">
+                  <div className="flex flex-col gap-2">
                     {section.image_url && (
-                      <img src={section.image_url} alt="Preview" className="w-32 h-20 object-cover rounded border border-stone-600 bg-stone-900" />
+                      <img src={section.image_url} alt="Preview" className="w-full h-32 object-cover rounded border border-stone-600 bg-stone-900" />
                     )}
                     <div className="flex-1">
                       <input 
@@ -185,7 +193,7 @@ export default function HomeEditor() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-stone-400 mb-1">CTA Text</label>
                     <input 
@@ -209,6 +217,18 @@ export default function HomeEditor() {
             </div>
           </div>
         ))}
+      </div>
+      
+      {/* Sticky Save Button for Mobile */}
+      <div className="sm:hidden h-20"></div> {/* Spacer */}
+      <div className="fixed bottom-0 left-0 right-0 bg-stone-800 p-4 border-t border-stone-700 sm:hidden">
+        <button 
+          onClick={handleSave} 
+          disabled={saving}
+          className={`w-full px-6 py-3 rounded font-bold ${saving ? 'bg-stone-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'} text-white transition-colors`}
+        >
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );

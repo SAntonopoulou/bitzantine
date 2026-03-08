@@ -19,6 +19,12 @@ export default function Events() {
           title: event.title,
           start: event.date,
           end: event.end_time,
+          // Add a class for styling
+          className: 'bitz-calendar-event',
+          // You can also add extendedProps for more data
+          extendedProps: {
+            description: event.description,
+          }
         }));
         setCalendarEvents(formattedEvents);
       })
@@ -44,7 +50,7 @@ export default function Events() {
         return <WeeklyEventList />;
       case 'dayGridMonth':
         return (
-          <div className="fc-theme">
+          <div className="fc-theme bg-stone-800 p-2 sm:p-4 rounded-lg border border-stone-700">
             <FullCalendar
               key={view}
               plugins={[dayGridPlugin]}
@@ -52,12 +58,22 @@ export default function Events() {
               headerToolbar={{
                 left: 'prev,next today',
                 center: 'title',
-                right: ''
+                right: '' // Keep it clean for mobile
               }}
               events={calendarEvents}
               eventClick={handleEventClick}
-              height="auto"
+              height="auto" // More flexible for different screen sizes
               noEventsContent="No events to display"
+              // Responsive settings
+              windowResize={(arg) => {
+                if (arg.view.type === 'dayGridMonth') {
+                  if (window.innerWidth < 768) {
+                    arg.view.calendar.setOption('dayMaxEvents', 2); // Limit events shown per day on mobile
+                  } else {
+                    arg.view.calendar.setOption('dayMaxEvents', true); // `true` is the default
+                  }
+                }
+              }}
             />
           </div>
         );
@@ -68,12 +84,12 @@ export default function Events() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-amber-500">Events</h1>
-        <div className="flex gap-2 p-1 bg-stone-800 rounded-lg">
-          <button onClick={() => setView('listAll')} className={`px-4 py-2 text-sm rounded-md ${view === 'listAll' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>List</button>
-          <button onClick={() => setView('weekly')} className={`px-4 py-2 text-sm rounded-md ${view === 'weekly' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Weekly</button>
-          <button onClick={() => setView('dayGridMonth')} className={`px-4 py-2 text-sm rounded-md ${view === 'dayGridMonth' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Calendar</button>
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <h1 className="text-3xl sm:text-4xl font-bold text-amber-500">Events</h1>
+        <div className="flex flex-wrap justify-center gap-2 p-1 bg-stone-800 rounded-lg">
+          <button onClick={() => setView('listAll')} className={`px-3 sm:px-4 py-2 text-sm rounded-md transition-colors ${view === 'listAll' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>List</button>
+          <button onClick={() => setView('weekly')} className={`px-3 sm:px-4 py-2 text-sm rounded-md transition-colors ${view === 'weekly' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Weekly</button>
+          <button onClick={() => setView('dayGridMonth')} className={`px-3 sm:px-4 py-2 text-sm rounded-md transition-colors ${view === 'dayGridMonth' ? 'bg-amber-600 text-white' : 'text-stone-300 hover:bg-stone-700'}`}>Calendar</button>
         </div>
       </div>
       {renderView()}
