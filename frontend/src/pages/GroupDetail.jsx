@@ -115,8 +115,8 @@ export default function GroupDetail() {
               <h3 className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-4">Leader</h3>
               {leaderUser ? (
                 <div className="flex items-center gap-4">
-                  {leaderUser.profile?.avatar_url ? (
-                    <img src={`http://localhost:8000${leaderUser.profile.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
+                  {leaderUser.avatar_url ? (
+                    <img src={`http://localhost:8000${leaderUser.avatar_url}`} alt={leaderUser.username} className="w-12 h-12 rounded-full object-cover" />
                   ) : (
                     <div className="w-12 h-12 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
                       {leaderUser.username[0].toUpperCase()}
@@ -138,8 +138,8 @@ export default function GroupDetail() {
                 {members.filter(m => m.role === 'officer' && m.status === 'approved').map(m => (
                   <div key={m.user.id} className="flex items-center justify-between bg-stone-800 p-3 rounded-lg border border-stone-700">
                     <div className="flex items-center gap-3">
-                      {m.user.profile?.avatar_url ? (
-                        <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                      {m.user.avatar_url ? (
+                        <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                           {m.user.username[0].toUpperCase()}
@@ -164,8 +164,8 @@ export default function GroupDetail() {
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {members.filter(m => m.status === 'approved').map(m => (
                 <div key={m.user.id} className="bg-stone-900/50 p-4 rounded-xl border border-stone-700 text-center group relative">
-                  {m.user.profile?.avatar_url ? (
-                    <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
+                  {m.user.avatar_url ? (
+                    <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-16 h-16 rounded-full mx-auto mb-3 object-cover" />
                   ) : (
                     <div className="w-16 h-16 bg-stone-700 rounded-full mx-auto mb-3 flex items-center justify-center text-amber-500 font-bold text-xl">
                       {m.user.username[0].toUpperCase()}

@@ -115,8 +115,8 @@ export default function GroupManagement() {
               {pendingMembers.map(m => (
                 <div key={m.user.id} className="bg-stone-800 p-4 rounded-lg border border-stone-700 flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {m.user.profile?.avatar_url ? (
-                      <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
+                    {m.user.avatar_url ? (
+                      <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
                       <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
                         {m.user.username[0].toUpperCase()}
@@ -155,8 +155,8 @@ export default function GroupManagement() {
                 {activeMembers.map(m => (
                   <tr key={m.user.id} className="hover:bg-stone-700/50">
                     <td className="px-6 py-4 flex items-center gap-3">
-                      {m.user.profile?.avatar_url ? (
-                        <img src={`http://localhost:8000${m.user.profile.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
+                      {m.user.avatar_url ? (
+                        <img src={`http://localhost:8000${m.user.avatar_url}`} alt={m.user.username} className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                           {m.user.username[0].toUpperCase()}

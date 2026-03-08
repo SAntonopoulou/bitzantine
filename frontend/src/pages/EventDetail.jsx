@@ -113,8 +113,8 @@ export default function EventDetail() {
                   <div className="flex flex-wrap gap-3">
                     {attendees.map(rsvp => (
                       <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.username} className="group relative">
-                        {rsvp.user.profile?.avatar_url ? (
-                          <img src={`http://localhost:8000${rsvp.user.profile.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-green-600 group-hover:border-green-400 transition-colors" />
+                        {rsvp.user.avatar_url ? (
+                          <img src={`http://localhost:8000${rsvp.user.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-green-600 group-hover:border-green-400 transition-colors" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-stone-300 font-bold border-2 border-green-600 group-hover:border-green-400 transition-colors">
                             {rsvp.user.username[0].toUpperCase()}
@@ -135,8 +135,8 @@ export default function EventDetail() {
                   <div className="flex flex-wrap gap-3">
                     {interested.map(rsvp => (
                       <Link to={`/profile/${rsvp.user.username}`} key={rsvp.user.id} title={rsvp.user.username} className="group relative">
-                        {rsvp.user.profile?.avatar_url ? (
-                          <img src={`http://localhost:8000${rsvp.user.profile.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-amber-600 group-hover:border-amber-400 transition-colors" />
+                        {rsvp.user.avatar_url ? (
+                          <img src={`http://localhost:8000${rsvp.user.avatar_url}`} alt={rsvp.user.username} className="w-10 h-10 rounded-full object-cover border-2 border-amber-600 group-hover:border-amber-400 transition-colors" />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-stone-700 flex items-center justify-center text-stone-300 font-bold border-2 border-amber-600 group-hover:border-amber-400 transition-colors">
                             {rsvp.user.username[0].toUpperCase()}

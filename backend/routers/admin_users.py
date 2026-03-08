@@ -21,7 +21,7 @@ async def get_users(session: Session = Depends(get_session)):
     """
     Fetch all users, including their profile and assigned groups.
     """
-    result = session.exec(select(User).options(selectinload(User.groups)))
+    result = session.exec(select(User).options(selectinload(User.groups), selectinload(User.profile)))
     users = result.all()
     
     users_with_groups = []
@@ -34,7 +34,8 @@ async def get_users(session: Session = Depends(get_session)):
             discord_username=user.discord_username,
             role=user.role,
             is_active=user.is_active,
-            groups=group_names
+            groups=group_names,
+            avatar_url=user.profile.avatar_url if user.profile else None
         )
         users_with_groups.append(user_data)
     return users_with_groups

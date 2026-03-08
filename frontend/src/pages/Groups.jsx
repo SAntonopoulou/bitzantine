@@ -87,8 +87,8 @@ export default function Groups() {
 
               {group.leader && (
                 <div className="flex items-center gap-3 mb-4 p-2 bg-stone-900/50 rounded-lg">
-                  {group.leader.profile?.avatar_url ? (
-                    <img src={`http://localhost:8000${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+                  {group.leader.avatar_url ? (
+                    <img src={`http://localhost:8000${group.leader.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
                   ) : (
                     <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                       {group.leader.username[0].toUpperCase()}

@@ -27,8 +27,8 @@ const GroupNode = ({ group }) => (
           <span className="text-xs uppercase tracking-wider text-stone-500 font-bold block mb-1">Leader</span>
           {group.leader ? (
             <div className="flex items-center gap-2">
-              {group.leader.profile?.avatar_url ? (
-                <img src={`http://localhost:8000${group.leader.profile.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
+              {group.leader.avatar_url ? (
+                <img src={`http://localhost:8000${group.leader.avatar_url}`} alt={group.leader.username} className="w-8 h-8 rounded-full object-cover" />
               ) : (
                 <div className="w-8 h-8 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold text-xs">
                   {group.leader.username[0].toUpperCase()}
@@ -49,8 +49,8 @@ const GroupNode = ({ group }) => (
             {group.officers && group.officers.length > 0 ? (
               group.officers.map(officer => (
                 <div key={officer.id} className="flex items-center gap-2 bg-stone-700 px-2 py-1 rounded hover:bg-stone-600 transition-colors">
-                  {officer.profile?.avatar_url ? (
-                    <img src={`http://localhost:8000${officer.profile.avatar_url}`} alt={officer.username} className="w-5 h-5 rounded-full object-cover" />
+                  {officer.avatar_url ? (
+                    <img src={`http://localhost:8000${officer.avatar_url}`} alt={officer.username} className="w-5 h-5 rounded-full object-cover" />
                   ) : (
                     <div className="w-5 h-5 bg-stone-600 rounded-full flex items-center justify-center text-amber-500 font-bold text-[10px]">
                       {officer.username[0].toUpperCase()}

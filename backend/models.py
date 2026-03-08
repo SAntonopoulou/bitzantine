@@ -190,6 +190,7 @@ class UserRead(SQLModel):
     discord_username: Optional[str] = None
     role: UserRole
     is_active: bool
+    avatar_url: Optional[str] = None
 
 class UserGroupRead(SQLModel):
     id: int

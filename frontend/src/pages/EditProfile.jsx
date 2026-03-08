@@ -212,17 +212,13 @@ export default function EditProfile() {
       if (avatarFile) {
         const avatarData = new FormData();
         avatarData.append('file', avatarFile);
-        await api.post('/users/me/avatar', avatarData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/users/me/avatar', avatarData);
       }
 
       if (headerFile) {
         const headerData = new FormData();
         headerData.append('file', headerFile);
-        await api.post('/users/me/header', headerData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/users/me/header', headerData);
       }
 
       await api.patch('/users/me/profile', formData);

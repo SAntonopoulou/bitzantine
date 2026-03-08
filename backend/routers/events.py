@@ -36,7 +36,48 @@ async def get_events(
         query = query.where(Event.date <= end)
     
     events = session.exec(query.order_by(desc(Event.date)).offset(skip).limit(limit)).all()
-    return events
+    
+    # Manually construct the response to include avatar_url
+    response = []
+    for event in events:
+        rsvps = []
+        for rsvp in event.rsvps:
+            rsvps.append(EventRSVPRead(
+                id=rsvp.id,
+                user_id=rsvp.user_id,
+                event_id=rsvp.event_id,
+                status=rsvp.status,
+                user=UserReadWithProfile(
+                    id=rsvp.user.id,
+                    username=rsvp.user.username,
+                    email=rsvp.user.email,
+                    discord_username=rsvp.user.discord_username,
+                    role=rsvp.user.role,
+                    is_active=rsvp.user.is_active,
+                    avatar_url=rsvp.user.profile.avatar_url if rsvp.user.profile else None,
+                    profile=rsvp.user.profile
+                )
+            ))
+        
+        host_with_profile = None
+        if event.host:
+            host_with_profile = UserReadWithProfile(
+                id=event.host.id,
+                username=event.host.username,
+                email=event.host.email,
+                discord_username=event.host.discord_username,
+                role=event.host.role,
+                is_active=event.host.is_active,
+                avatar_url=event.host.profile.avatar_url if event.host.profile else None,
+                profile=event.host.profile
+            )
+
+        response.append(EventReadWithDetails(
+            **event.dict(),
+            rsvps=rsvps,
+            host=host_with_profile
+        ))
+    return response
 
 @router.get("/{event_id}", response_model=EventDetailResponse)
 async def get_event(event_id: int, session: Session = Depends(get_session)):
@@ -65,8 +106,47 @@ async def get_event(event_id: int, session: Session = Depends(get_session)):
         .limit(1)
     ).first()
 
+    # Manually construct the response to include avatar_url
+    rsvps = []
+    for rsvp in event.rsvps:
+        rsvps.append(EventRSVPRead(
+            id=rsvp.id,
+            user_id=rsvp.user_id,
+            event_id=rsvp.event_id,
+            status=rsvp.status,
+            user=UserReadWithProfile(
+                id=rsvp.user.id,
+                username=rsvp.user.username,
+                email=rsvp.user.email,
+                discord_username=rsvp.user.discord_username,
+                role=rsvp.user.role,
+                is_active=rsvp.user.is_active,
+                avatar_url=rsvp.user.profile.avatar_url if rsvp.user.profile else None,
+                profile=rsvp.user.profile
+            )
+        ))
+    
+    host_with_profile = None
+    if event.host:
+        host_with_profile = UserReadWithProfile(
+            id=event.host.id,
+            username=event.host.username,
+            email=event.host.email,
+            discord_username=event.host.discord_username,
+            role=event.host.role,
+            is_active=event.host.is_active,
+            avatar_url=event.host.profile.avatar_url if event.host.profile else None,
+            profile=event.host.profile
+        )
+
+    event_with_details = EventReadWithDetails(
+        **event.dict(),
+        rsvps=rsvps,
+        host=host_with_profile
+    )
+
     return EventDetailResponse(
-        event=event,
+        event=event_with_details,
         previous_event_id=previous_event_id,
         next_event_id=next_event_id,
     )
@@ -126,5 +206,14 @@ async def rsvp_for_event(
         user_id=rsvp.user_id,
         event_id=rsvp.event_id,
         status=rsvp.status,
-        user=user_with_profile
+        user=UserReadWithProfile(
+            id=user_with_profile.id,
+            username=user_with_profile.username,
+            email=user_with_profile.email,
+            discord_username=user_with_profile.discord_username,
+            role=user_with_profile.role,
+            is_active=user_with_profile.is_active,
+            avatar_url=user_with_profile.profile.avatar_url if user_with_profile.profile else None,
+            profile=user_with_profile.profile
+        )
     )

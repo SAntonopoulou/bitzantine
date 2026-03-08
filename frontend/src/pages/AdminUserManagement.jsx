@@ -214,6 +214,7 @@ const AdminUserManagement = () => {
                 <table className="w-full text-left text-stone-200">
                     <thead>
                         <tr className="border-b border-stone-700">
+                            <th className="pb-4 text-amber-500"></th>
                             <th className="pb-4 text-amber-500 cursor-pointer hover:text-amber-400" onClick={() => requestSort('username')}>
                                 Username{getSortIcon('username')}
                             </th>
@@ -230,6 +231,15 @@ const AdminUserManagement = () => {
                     <tbody className="divide-y divide-stone-700">
                         {sortedAndFilteredUsers.map((user) => (
                             <tr key={user.id} className="hover:bg-stone-700 transition-colors">
+                                <td className="py-4">
+                                    {user.avatar_url ? (
+                                        <img src={`http://localhost:8000${user.avatar_url}`} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
+                                    ) : (
+                                        <div className="w-10 h-10 bg-stone-700 rounded-full flex items-center justify-center text-amber-500 font-bold">
+                                            {user.username[0].toUpperCase()}
+                                        </div>
+                                    )}
+                                </td>
                                 <td className="py-4">{user.username}</td>
                                 <td className="py-4 capitalize">{user.role.replace('_', ' ')}</td>
                                 <td className="py-4">
