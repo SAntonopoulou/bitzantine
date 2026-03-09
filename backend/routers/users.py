@@ -5,7 +5,8 @@ from typing import List, Optional
 import shutil
 import os
 import uuid
-from datetime import date
+import random
+from datetime import date, datetime, timedelta
 
 from database import get_session
 from models import (
@@ -13,7 +14,7 @@ from models import (
     UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink,
     PrivacyLevel, UserRole
 )
-from auth import get_current_active_user, get_optional_current_active_user
+from auth import get_current_active_user, get_optional_current_active_user, get_password_hash
 from email_utils import send_email
 
 router = APIRouter(
@@ -232,3 +233,57 @@ async def change_email(
     )
 
     return {"message": "Email updated successfully"}
+
+@router.post("/me/request-password-change")
+async def request_password_change(
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    verification_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    verification_code_expires_at = datetime.utcnow() + timedelta(minutes=15)
+
+    current_user.verification_code = verification_code
+    current_user.verification_code_expires_at = verification_code_expires_at
+    session.add(current_user)
+    session.commit()
+
+    send_email(
+        to_email=current_user.email,
+        subject="Password Change Request",
+        html_content=f"""
+        <p>Hello {current_user.username},</p>
+        <p>You have requested to change your password. Please use the following code to verify your identity:</p>
+        <h2>{verification_code}</h2>
+        <p>This code will expire in 15 minutes.</p>
+        <p>If you did not request this change, please ignore this email.</p>
+        """
+    )
+
+    return {"message": "Verification code sent to your email"}
+
+@router.post("/me/change-password")
+async def change_password(
+    code: str = Body(..., embed=True),
+    new_password: str = Body(..., embed=True),
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    if not current_user.verification_code or current_user.verification_code != code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+
+    if not current_user.verification_code_expires_at or datetime.utcnow() > current_user.verification_code_expires_at:
+        raise HTTPException(status_code=400, detail="Verification code has expired")
+
+    current_user.hashed_password = get_password_hash(new_password)
+    current_user.verification_code = None
+    current_user.verification_code_expires_at = None
+    session.add(current_user)
+    session.commit()
+
+    send_email(
+        to_email=current_user.email,
+        subject="Password Changed Successfully",
+        html_content=f"<p>Hello {current_user.username},</p><p>Your password has been successfully changed.</p>"
+    )
+
+    return {"message": "Password changed successfully"}

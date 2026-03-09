@@ -26,9 +26,11 @@ export default function Settings() {
               <h2 className="text-xl font-semibold text-stone-200">Account Security</h2>
               <p className="text-stone-400 text-sm mt-1">Change your password and manage account security.</p>
             </div>
-            <button className="px-4 py-2 bg-stone-700 text-stone-300 rounded hover:bg-stone-600 transition-colors">
+            <Link to="/change-password"
+              className="px-4 py-2 bg-stone-700 text-stone-300 rounded hover:bg-stone-600 transition-colors"
+            >
               Change Password
-            </button>
+            </Link>
           </div>
 
           <div className="flex items-center justify-between">
