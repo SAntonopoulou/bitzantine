@@ -18,6 +18,12 @@ class PrivacyLevel(str, PyEnum):
     PRIVATE = "private"
     MEMBERS_ONLY = "members_only" # Citizens and above
 
+class StreamerStatus(str, PyEnum):
+    NONE = "none"
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 class RSVPStatus(str, PyEnum):
     ATTENDING = "attending"
     INTERESTED = "interested"
@@ -66,6 +72,10 @@ class EventRSVPBase(SQLModel):
     status: RSVPStatus
 
 # --- Table Models ---
+class SiteSetting(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    value: str
+
 class HomeSection(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     section_key: str = Field(unique=True)
@@ -99,6 +109,10 @@ class Profile(SQLModel, table=True):
     # Display Settings
     use_in_game_name: bool = Field(default=False)
     
+    # Streamer Program
+    streamer_status: StreamerStatus = Field(default=StreamerStatus.NONE)
+    streamer_visibility: PrivacyLevel = Field(default=PrivacyLevel.PUBLIC)
+    
     # JSON Fields
     social_links: Dict = Field(default={}, sa_column=Column(JSON))
     
@@ -128,7 +142,7 @@ class User(SQLModel, table=True):
     verification_code: Optional[str] = Field(default=None, index=True)
     verification_code_expires_at: Optional[datetime] = None
     
-    profile: Optional[Profile] = Relationship(back_populates="user")
+    profile: Optional[Profile] = Relationship(back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
     announcements: List["Announcement"] = Relationship(back_populates="author")
     lore_entries: List["LoreEntry"] = Relationship(back_populates="author")
     rsvps: List["EventRSVP"] = Relationship(back_populates="user")
@@ -298,6 +312,8 @@ class ProfileRead(SQLModel):
     use_in_game_name: bool = False
     social_links: Dict = {}
     privacy_settings: Dict = {}
+    streamer_status: StreamerStatus = StreamerStatus.NONE
+    streamer_visibility: PrivacyLevel = PrivacyLevel.PUBLIC
 
 class UserReadWithProfile(UserRead):
     profile: Optional[ProfileRead] = None
@@ -310,6 +326,8 @@ class UserPublicProfile(SQLModel):
     header_image_url: Optional[str] = None
     username_color: Optional[str] = None
     in_game_activities: Optional[str] = None
+    streamer_status: Optional[StreamerStatus] = None
+    streamer_visibility: Optional[PrivacyLevel] = None
     
     # Optional fields based on privacy
     bio: Optional[str] = None
@@ -440,3 +458,4 @@ class ProfileUpdate(SQLModel):
 class VerificationRequest(SQLModel):
     email: str
     code: str
+    streamer_visibility: Optional[PrivacyLevel] = None

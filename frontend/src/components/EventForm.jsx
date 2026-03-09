@@ -136,38 +136,41 @@ export default function EventForm({ event, isEditing = false, isTemplate = false
     }
   };
 
+  const inputStyles = "mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2 focus:border-amber-500 focus:ring-amber-500";
+  const labelStyles = "block text-sm font-medium text-stone-300 mb-1";
+
   return (
-    <div className="p-8 max-w-4xl mx-auto text-stone-200">
-      <Link to="/admin/events" className="text-amber-600 hover:underline mb-8 block">&larr; Back to Events</Link>
-      <h1 className="text-3xl font-bold mb-8 text-amber-500">
+    <div className="p-4 sm:p-8 max-w-4xl mx-auto text-stone-200">
+      <Link to="/admin/events" className="text-amber-600 hover:underline mb-6 sm:mb-8 block">&larr; Back to Events</Link>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-amber-500">
         {isEditing ? `Edit ${isTemplate ? 'Template' : 'Event'}` : `Create New ${isTemplate ? 'Template' : 'Event'}`}
       </h1>
       
       {!isTemplate && !isEditing && (
         <div className="mb-6">
-          <label className="block text-sm font-medium text-stone-300 mb-2">Load from Template</label>
-          <select onChange={(e) => loadFromTemplate(e.target.value)} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2">
+          <label className={labelStyles}>Load from Template</label>
+          <select onChange={(e) => loadFromTemplate(e.target.value)} className={inputStyles}>
             <option value="">Select a template...</option>
             {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6 bg-stone-800 p-8 rounded-lg border border-stone-700">
+      <form onSubmit={handleSubmit} className="space-y-6 bg-stone-800 p-4 sm:p-8 rounded-lg border border-stone-700">
         {isTemplate && (
           <div>
-            <label className="block text-sm font-medium text-stone-300 mb-1">Template Name</label>
-            <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+            <label className={labelStyles}>Template Name</label>
+            <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles}/>
           </div>
         )}
         
         <div>
-          <label className="block text-sm font-medium text-stone-300 mb-1">Event Title</label>
-          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+          <label className={labelStyles}>Event Title</label>
+          <input type="text" name="title" value={formData.title} onChange={handleInputChange} required className={inputStyles}/>
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-stone-300 mb-1">Description</label>
+          <label className={labelStyles}>Description</label>
           <Editor 
             apiKey={TINYMCE_API_KEY} 
             value={formData.description} 
@@ -187,22 +190,22 @@ export default function EventForm({ event, isEditing = false, isTemplate = false
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Start Time</label>
-                <input type="datetime-local" name="date" value={formData.date} onChange={handleInputChange} required className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+                <label className={labelStyles}>Start Time</label>
+                <input type="datetime-local" name="date" value={formData.date} onChange={handleInputChange} required className={inputStyles}/>
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">End Time</label>
-                <input type="datetime-local" name="end_time" value={formData.end_time} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+                <label className={labelStyles}>End Time</label>
+                <input type="datetime-local" name="end_time" value={formData.end_time} onChange={handleInputChange} className={inputStyles}/>
               </div>
               <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Timezone</label>
-                <input type="text" name="timezone" value={formData.timezone} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+                <label className={labelStyles}>Timezone</label>
+                <input type="text" name="timezone" value={formData.timezone} onChange={handleInputChange} className={inputStyles}/>
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-stone-300 mb-1">Recurrence</label>
-              <select name="recurrence_rule" value={formData.recurrence_rule} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2">
+              <label className={labelStyles}>Recurrence</label>
+              <select name="recurrence_rule" value={formData.recurrence_rule} onChange={handleInputChange} className={inputStyles}>
                 <option value="">No Recurrence</option>
                 <option value="FREQ=DAILY">Daily</option>
                 <option value="FREQ=WEEKLY">Weekly</option>
@@ -217,15 +220,15 @@ export default function EventForm({ event, isEditing = false, isTemplate = false
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Host User</label>
-                <select name="host_user_id" value={formData.host_user_id} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2">
+                <label className={labelStyles}>Host User</label>
+                <select name="host_user_id" value={formData.host_user_id} onChange={handleInputChange} className={inputStyles}>
                     <option value="">Select a user...</option>
                     {users.map(u => <option key={u.id} value={u.id}>{u.display_name || u.username}</option>)}
                 </select>
             </div>
             <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Host Group</label>
-                <select name="host_group_id" value={formData.host_group_id} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2">
+                <label className={labelStyles}>Host Group</label>
+                <select name="host_group_id" value={formData.host_group_id} onChange={handleInputChange} className={inputStyles}>
                     <option value="">Select a group...</option>
                     {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                 </select>
@@ -234,17 +237,17 @@ export default function EventForm({ event, isEditing = false, isTemplate = false
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Min Participants</label>
-                <input type="number" name="min_participants" value={formData.min_participants} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+                <label className={labelStyles}>Min Participants</label>
+                <input type="number" name="min_participants" value={formData.min_participants} onChange={handleInputChange} className={inputStyles}/>
             </div>
             <div>
-                <label className="block text-sm font-medium text-stone-300 mb-1">Max Participants</label>
-                <input type="number" name="max_participants" value={formData.max_participants} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+                <label className={labelStyles}>Max Participants</label>
+                <input type="number" name="max_participants" value={formData.max_participants} onChange={handleInputChange} className={inputStyles}/>
             </div>
         </div>
         
         <div>
-            <label className="block text-sm font-medium text-stone-300 mb-1">Featured Image</label>
+            <label className={labelStyles}>Featured Image</label>
             {isEditing && formData.featured_image_url && (
               <div className="mt-2 mb-2">
                 <img src={`${API_URL}${formData.featured_image_url}`} alt="Current featured" className="w-full h-auto rounded-md object-cover" style={{ maxHeight: '300px' }} />
@@ -254,8 +257,8 @@ export default function EventForm({ event, isEditing = false, isTemplate = false
         </div>
         
         <div>
-            <label className="block text-sm font-medium text-stone-300 mb-1">Tags (comma separated)</label>
-            <input type="text" name="tags" value={formData.tags} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 p-2"/>
+            <label className={labelStyles}>Tags (comma separated)</label>
+            <input type="text" name="tags" value={formData.tags} onChange={handleInputChange} className={inputStyles}/>
         </div>
         
         <button type="submit" className="w-full bitz-btn py-3 text-lg font-bold">{isEditing ? 'Update' : 'Create'}</button>

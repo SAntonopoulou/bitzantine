@@ -26,7 +26,6 @@ const PollDetail = () => {
     try {
       const response = await api.get(`/polls/${id}`);
       setPoll(response.data);
-      // Pre-select user's votes if they exist
       if (response.data.user_votes && response.data.user_votes.length > 0) {
           setSelectedOptions(response.data.user_votes);
           setViewResults(true);
@@ -64,7 +63,7 @@ const PollDetail = () => {
     try {
       await api.post(`/polls/${id}/vote`, { option_ids: selectedOptions });
       showNotification('Vote cast successfully!', 'success');
-      fetchPoll(); // Refresh to show results
+      fetchPoll();
     } catch (err) {
       console.error("Vote failed:", err);
       showNotification(err.response?.data?.detail || "Failed to cast vote.", 'error');
@@ -77,7 +76,7 @@ const PollDetail = () => {
     if (!newOptionText.trim()) return;
     setSubmitting(true);
     try {
-      const response = await api.post(`/polls/${id}/options`, { text: newOptionText });
+      await api.post(`/polls/${id}/options`, { text: newOptionText });
       setNewOptionText('');
       showNotification('Option added successfully!', 'success');
       fetchPoll();
@@ -89,14 +88,13 @@ const PollDetail = () => {
     }
   };
 
-  if (loading) return <div className="text-center text-stone-300 mt-10">Loading poll...</div>;
-  if (error) return <div className="text-center text-red-500 mt-10">{error}</div>;
-  if (!poll) return <div className="text-center text-stone-300 mt-10">Poll not found.</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-center text-stone-300">Loading poll...</div>;
+  if (error) return <div className="p-4 sm:p-8 text-center text-red-500">{error}</div>;
+  if (!poll) return <div className="p-4 sm:p-8 text-center text-stone-300">Poll not found.</div>;
 
   const hasVoted = poll.user_votes && poll.user_votes.length > 0;
   const isClosed = !poll.is_active;
 
-  // Prepare data for chart
   const chartData = poll.options.map(opt => ({
     name: opt.text,
     votes: opt.vote_count,
@@ -105,33 +103,23 @@ const PollDetail = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <div className="bg-stone-800 rounded-lg shadow-lg p-8 border border-stone-700">
-        <h1 className="text-3xl font-bold text-amber-500 mb-2 font-serif">{poll.title}</h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-stone-400 mb-6">
+      <div className="bg-stone-800 rounded-lg shadow-lg p-4 sm:p-8 border border-stone-700">
+        <h1 className="text-2xl sm:text-3xl font-bold text-amber-500 mb-2 font-serif">{poll.title}</h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-400 mb-6">
             <span>{poll.total_votes} votes</span>
             <span>•</span>
             <span>{poll.is_active ? 'Open' : 'Closed'}</span>
-            {poll.end_date && (
-                <>
-                    <span>•</span>
-                    <span>Ends: {new Date(poll.end_date).toLocaleDateString()}</span>
-                </>
-            )}
-            {poll.allow_multiple_votes && (
-                <>
-                    <span>•</span>
-                    <span className="text-amber-400">Multiple Choice (Max {poll.max_votes})</span>
-                </>
-            )}
+            {poll.end_date && (<><span>•</span><span>Ends: {new Date(poll.end_date).toLocaleDateString()}</span></>)}
+            {poll.allow_multiple_votes && (<><span>•</span><span className="text-amber-400">Multiple Choice (Max {poll.max_votes})</span></>)}
         </div>
         
-        <p className="text-stone-300 mb-8 text-lg">{poll.description}</p>
+        <p className="text-stone-300 mb-8 sm:text-lg">{poll.description}</p>
 
         {!viewResults ? (
           // Voting View
           <div className="space-y-4">
             {poll.options.map(option => (
-              <label key={option.id} className={`flex items-center p-4 rounded border cursor-pointer transition-colors ${selectedOptions.includes(option.id) ? 'bg-stone-700 border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-700'}`}>
+              <label key={option.id} className={`flex items-center p-3 sm:p-4 rounded border cursor-pointer transition-colors ${selectedOptions.includes(option.id) ? 'bg-stone-700 border-amber-500' : 'bg-stone-900 border-stone-700 hover:bg-stone-700'}`}>
                 <input
                   type={poll.allow_multiple_votes ? "checkbox" : "radio"}
                   name="poll-option"
@@ -147,7 +135,7 @@ const PollDetail = () => {
             {poll.allow_user_options && (
                 <div className="mt-6 pt-6 border-t border-stone-700">
                     <h4 className="text-sm font-semibold text-stone-400 mb-2">Add your own option:</h4>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <input
                             type="text"
                             value={newOptionText}
@@ -158,7 +146,7 @@ const PollDetail = () => {
                         <button
                             onClick={handleAddOption}
                             disabled={submitting || !newOptionText.trim()}
-                            className="bg-stone-700 hover:bg-stone-600 text-stone-200 px-4 py-2 rounded disabled:opacity-50"
+                            className="w-full sm:w-auto bg-stone-700 hover:bg-stone-600 text-stone-200 px-4 py-2 rounded disabled:opacity-50"
                         >
                             Add
                         </button>
@@ -166,7 +154,7 @@ const PollDetail = () => {
                 </div>
             )}
 
-            <div className="flex gap-4 mt-6">
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
                 <button
                 onClick={handleVote}
                 disabled={selectedOptions.length === 0 || submitting}
@@ -190,13 +178,13 @@ const PollDetail = () => {
           <div>
             <div className="h-64 w-full mb-8">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                   <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={100} tick={{fill: '#d6d3d1', fontSize: 12}} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{fill: '#d6d3d1', fontSize: 12}} interval={0} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#292524', borderColor: '#44403c', color: '#e7e5e4' }}
                     itemStyle={{ color: '#fbbf24' }}
-                    cursor={{fill: 'transparent'}}
+                    cursor={{fill: 'rgba(41, 37, 36, 0.5)'}}
                   />
                   <Bar dataKey="votes" fill="#d97706" radius={[0, 4, 4, 0]}>
                     {chartData.map((entry, index) => (
@@ -214,17 +202,13 @@ const PollDetail = () => {
                     
                     return (
                         <div key={option.id} className="relative pt-1">
-                            <div className="flex mb-2 items-center justify-between">
-                                <div>
-                                    <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${isUserVote ? 'text-amber-600 bg-amber-200' : 'text-stone-600 bg-stone-200'}`}>
-                                        {option.text} {isUserVote && "(You voted)"}
-                                    </span>
-                                </div>
-                                <div className="text-right">
-                                    <span className="text-xs font-semibold inline-block text-stone-400">
-                                        {percentage}% ({option.vote_count} votes)
-                                    </span>
-                                </div>
+                            <div className="flex mb-2 items-center justify-between text-xs">
+                                <span className={`font-semibold inline-block py-1 px-2 uppercase rounded-full ${isUserVote ? 'text-amber-600 bg-amber-200' : 'text-stone-300'}`}>
+                                    {option.text} {isUserVote && "(You voted)"}
+                                </span>
+                                <span className="font-semibold text-stone-400">
+                                    {percentage}% ({option.vote_count} votes)
+                                </span>
                             </div>
                             <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-stone-700">
                                 <div style={{ width: `${percentage}%` }} className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${isUserVote ? 'bg-amber-500' : 'bg-stone-500'}`}></div>

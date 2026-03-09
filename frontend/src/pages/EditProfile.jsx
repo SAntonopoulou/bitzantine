@@ -8,15 +8,12 @@ import {
   Save, 
   X, 
   Upload, 
-  Eye, 
-  EyeOff, 
   Plus, 
   Trash2,
   Shield,
   Globe,
   Lock,
-  Users,
-  User as UserIcon
+  Users
 } from 'lucide-react';
 
 function getCroppedImg(image, crop, fileName) {
@@ -54,7 +51,7 @@ function getCroppedImg(image, crop, fileName) {
 const PrivacySelector = ({ label, value, onChange }) => {
   const options = [
     { id: 'public', label: 'Public', icon: Globe, color: 'text-green-500' },
-    { id: 'members_only', label: 'Members Only', icon: Users, color: 'text-blue-500' },
+    { id: 'members_only', label: 'Members', icon: Users, color: 'text-blue-500' },
     { id: 'private', label: 'Private', icon: Lock, color: 'text-red-500' },
   ];
 
@@ -77,7 +74,7 @@ const PrivacySelector = ({ label, value, onChange }) => {
               }`}
               title={opt.label}
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? opt.color : ''}`} />
+              <Icon className={`w-4 h-4 ${isActive ? opt.color : ''}`} />
               <span className="hidden sm:inline">{opt.label}</span>
             </button>
           );
@@ -141,7 +138,7 @@ export default function EditProfile() {
           bio: data.bio || '',
           real_name: data.real_name || '',
           gender: data.gender || '',
-          birthdate: data.birthdate || '',
+          birthdate: data.birthdate ? new Date(data.birthdate).toISOString().split('T')[0] : '',
           location: data.location || '',
           in_game_username: data.in_game_username || '',
           in_game_activities: data.in_game_activities || '',
@@ -201,7 +198,7 @@ export default function EditProfile() {
   const onImageLoad = (e) => {
     imgRef.current = e.currentTarget;
     const { width, height } = e.currentTarget;
-    const aspect = croppingModal.type === 'avatar' ? 1 : 16 / 9;
+    const aspect = croppingModal.type === 'avatar' ? 1 : 3; // 3:1 aspect ratio for header
     const newCrop = centerCrop(
       makeAspectCrop({ unit: '%', width: 90 }, aspect, width, height),
       width,
@@ -266,7 +263,6 @@ export default function EditProfile() {
         await api.post('/users/me/header', headerData);
       }
 
-      // Clean up data before sending to avoid 422 errors
       const submissionData = { ...formData };
       if (submissionData.birthdate === "") submissionData.birthdate = null;
       if (submissionData.gender === "") submissionData.gender = null;
@@ -286,17 +282,20 @@ export default function EditProfile() {
 
   if (loading) return <div className="p-8 text-center text-stone-400">Loading...</div>;
 
+  const inputStyles = "mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm";
+  const labelStyles = "block text-sm font-medium text-stone-400 mb-1";
+
   return (
     <>
       {croppingModal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
-          <div className="bg-stone-800 p-6 rounded-lg shadow-xl max-w-2xl w-full">
+          <div className="bg-stone-800 p-4 sm:p-6 rounded-lg shadow-xl max-w-2xl w-full">
             <h2 className="text-xl font-bold text-amber-500 mb-4">Crop Image</h2>
             <ReactCrop
               crop={crop}
               onChange={c => setCrop(c)}
               onComplete={c => setCompletedCrop(c)}
-              aspect={croppingModal.type === 'avatar' ? 1 : 16 / 9}
+              aspect={croppingModal.type === 'avatar' ? 1 : 3}
               className="max-h-[60vh]"
             >
               <img ref={imgRef} src={croppingModal.src} onLoad={onImageLoad} alt="Crop preview" />
@@ -308,12 +307,12 @@ export default function EditProfile() {
           </div>
         </div>
       )}
-      <div className="min-h-screen bg-stone-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-stone-900 py-6 sm:py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto bg-stone-800 rounded-lg shadow-lg overflow-hidden border border-stone-700">
-          <div className="px-6 py-4 border-b border-stone-700 flex justify-between items-center">
+          <div className="px-4 sm:px-6 py-4 border-b border-stone-700 flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <Shield className="w-6 h-6 text-amber-500" />
-              <h1 className="text-2xl font-bold text-amber-500">Edit Profile</h1>
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
+              <h1 className="text-xl sm:text-2xl font-bold text-amber-500">Edit Profile</h1>
             </div>
             <button 
               onClick={() => navigate(`/profile/${user.username}`)}
@@ -323,7 +322,7 @@ export default function EditProfile() {
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-8">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-8">
             {error && (
               <div className="bg-red-900/50 border border-red-800 p-4 text-red-300 rounded">
                 <p>{error}</p>
@@ -335,7 +334,7 @@ export default function EditProfile() {
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Appearance</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-2">Username Color</label>
+                  <label className={labelStyles}>Username Color</label>
                   <input
                     type="color"
                     name="username_color"
@@ -347,7 +346,7 @@ export default function EditProfile() {
                 <div className="flex items-center gap-3 bg-stone-900/30 p-4 rounded-lg border border-stone-700">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-stone-200">Use In-Game Name</label>
-                    <p className="text-xs text-stone-500">Display your character name instead of username</p>
+                    <p className="text-xs text-stone-500">Display character name instead of username</p>
                   </div>
                   <input
                     type="checkbox"
@@ -363,10 +362,10 @@ export default function EditProfile() {
             {/* Images Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Images</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                 <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-2">Header Image</label>
-                  <div className="relative h-32 bg-stone-700 rounded-lg overflow-hidden border-2 border-dashed border-stone-600 hover:border-amber-500 transition-colors group">
+                  <label className={labelStyles}>Header Image (3:1 ratio recommended)</label>
+                  <div className="relative aspect-[3/1] bg-stone-700 rounded-lg overflow-hidden border-2 border-dashed border-stone-600 hover:border-amber-500 transition-colors group">
                     {headerPreview && <img src={headerPreview} alt="Header Preview" className="w-full h-full object-cover" />}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all">
                       <label className="cursor-pointer p-2 bg-stone-800 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
@@ -377,16 +376,14 @@ export default function EditProfile() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-2">Avatar</label>
-                  <div className="flex items-center space-x-4">
-                    <div className="relative w-24 h-24 rounded-full bg-stone-700 overflow-hidden border-2 border-stone-600 group">
-                      {avatarPreview && <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all">
-                        <label className="cursor-pointer p-2 bg-stone-800 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Upload className="w-4 h-4 text-stone-300" />
-                          <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
-                        </label>
-                      </div>
+                  <label className={labelStyles}>Avatar</label>
+                  <div className="relative w-24 h-24 rounded-full bg-stone-700 overflow-hidden border-2 border-stone-600 group">
+                    {avatarPreview && <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all">
+                      <label className="cursor-pointer p-2 bg-stone-800 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Upload className="w-4 h-4 text-stone-300" />
+                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
+                      </label>
                     </div>
                   </div>
                 </div>
@@ -396,43 +393,31 @@ export default function EditProfile() {
             {/* Identity Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Identity</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div className="col-span-2 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Bio</label>
-                    <textarea name="bio" rows="3" value={formData.bio} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" placeholder="Tell us about yourself..." />
-                  </div>
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <label className={labelStyles}>Bio</label>
+                  <textarea name="bio" rows="3" value={formData.bio} onChange={handleInputChange} className={inputStyles} placeholder="Tell us about yourself..." />
                   <PrivacySelector label="Bio" value={formData.privacy_settings.bio} onChange={(val) => handlePrivacyChange('bio', val)} />
                 </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Real Name</label>
-                    <input type="text" name="real_name" value={formData.real_name} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <label className={labelStyles}>Real Name</label>
+                    <input type="text" name="real_name" value={formData.real_name} onChange={handleInputChange} className={inputStyles} />
+                    <PrivacySelector label="Real Name" value={formData.privacy_settings.real_name} onChange={(val) => handlePrivacyChange('real_name', val)} />
                   </div>
-                  <PrivacySelector label="Real Name" value={formData.privacy_settings.real_name} onChange={(val) => handlePrivacyChange('real_name', val)} />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Location</label>
-                    <input type="text" name="location" value={formData.location} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  <div className="space-y-4">
+                    <label className={labelStyles}>Location</label>
+                    <input type="text" name="location" value={formData.location} onChange={handleInputChange} className={inputStyles} />
+                    <PrivacySelector label="Location" value={formData.privacy_settings.location} onChange={(val) => handlePrivacyChange('location', val)} />
                   </div>
-                  <PrivacySelector label="Location" value={formData.privacy_settings.location} onChange={(val) => handlePrivacyChange('location', val)} />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Birthdate</label>
-                    <input type="date" name="birthdate" value={formData.birthdate} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+                  <div className="space-y-4">
+                    <label className={labelStyles}>Birthdate</label>
+                    <input type="date" name="birthdate" value={formData.birthdate} onChange={handleInputChange} className={inputStyles} />
+                    <PrivacySelector label="Birthdate" value={formData.privacy_settings.birthdate} onChange={(val) => handlePrivacyChange('birthdate', val)} />
                   </div>
-                  <PrivacySelector label="Birthdate" value={formData.privacy_settings.birthdate} onChange={(val) => handlePrivacyChange('birthdate', val)} />
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Gender</label>
-                    <select name="gender" value={formData.gender} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
+                  <div className="space-y-4">
+                    <label className={labelStyles}>Gender</label>
+                    <select name="gender" value={formData.gender} onChange={handleInputChange} className={inputStyles}>
                       <option value="">Select...</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -440,8 +425,8 @@ export default function EditProfile() {
                       <option value="Other">Other</option>
                       <option value="Prefer not to say">Prefer not to say</option>
                     </select>
+                    <PrivacySelector label="Gender" value={formData.privacy_settings.gender} onChange={(val) => handlePrivacyChange('gender', val)} />
                   </div>
-                  <PrivacySelector label="Gender" value={formData.privacy_settings.gender} onChange={(val) => handlePrivacyChange('gender', val)} />
                 </div>
               </div>
             </div>
@@ -449,21 +434,19 @@ export default function EditProfile() {
             {/* Gaming Info Section */}
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-stone-300 border-b border-stone-700 pb-2">Gaming Profile</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-stone-400 mb-1">In-Game Username</label>
-                  <input type="text" name="in_game_username" value={formData.in_game_username} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <label className={labelStyles}>In-Game Username</label>
+                  <input type="text" name="in_game_username" value={formData.in_game_username} onChange={handleInputChange} className={inputStyles} />
                 </div>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-stone-400 mb-1">Typical Playtime</label>
-                    <input type="text" name="typical_playtime" value={formData.typical_playtime} onChange={handleInputChange} placeholder="e.g., Weeknights 8pm EST" className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
-                  </div>
+                  <label className={labelStyles}>Typical Playtime</label>
+                  <input type="text" name="typical_playtime" value={formData.typical_playtime} onChange={handleInputChange} placeholder="e.g., Weeknights 8pm EST" className={inputStyles} />
                   <PrivacySelector label="Playtime" value={formData.privacy_settings.typical_playtime} onChange={(val) => handlePrivacyChange('typical_playtime', val)} />
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-stone-400 mb-1">In-Game Activities</label>
-                  <textarea name="in_game_activities" rows="2" value={formData.in_game_activities} onChange={handleInputChange} className="mt-1 block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" placeholder="What do you usually do in-game?" />
+                <div className="md:col-span-2 space-y-4">
+                  <label className={labelStyles}>In-Game Activities</label>
+                  <textarea name="in_game_activities" rows="2" value={formData.in_game_activities} onChange={handleInputChange} className={inputStyles} placeholder="What do you usually do in-game?" />
                 </div>
               </div>
             </div>
@@ -475,15 +458,15 @@ export default function EditProfile() {
                 <div className="space-y-4">
                   {Object.entries(formData.social_links).map(([platform, url]) => (
                     <div key={platform} className="flex items-center space-x-2">
-                      <div className="flex-1 p-2 bg-stone-700/50 border border-stone-600 rounded-md flex justify-between items-center">
+                      <div className="flex-1 p-2 bg-stone-700/50 border border-stone-600 rounded-md flex flex-col sm:flex-row justify-between sm:items-center">
                         <span className="font-medium capitalize text-stone-300">{platform}</span>
-                        <span className="text-sm text-stone-400 truncate max-w-xs">{url}</span>
+                        <span className="text-sm text-stone-400 truncate">{url}</span>
                       </div>
-                      <button type="button" onClick={() => removeSocialLink(platform)} className="p-2 text-red-500 hover:bg-red-900/50 rounded-full transition-colors"><Trash2 className="w-5 h-5" /></button>
+                      <button type="button" onClick={() => removeSocialLink(platform)} className="p-2 text-red-500 hover:bg-red-900/50 rounded-full transition-colors flex-shrink-0"><Trash2 className="w-5 h-5" /></button>
                     </div>
                   ))}
-                  <div className="flex space-x-2">
-                    <select value={newSocialPlatform} onChange={(e) => setNewSocialPlatform(e.target.value)} className="block w-1/3 rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm">
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <select value={newSocialPlatform} onChange={(e) => setNewSocialPlatform(e.target.value)} className={`${inputStyles} sm:w-1/3`}>
                       <option value="">Platform...</option>
                       <option value="twitter">Twitter</option>
                       <option value="twitch">Twitch</option>
@@ -492,8 +475,8 @@ export default function EditProfile() {
                       <option value="discord">Discord Server</option>
                       <option value="website">Website</option>
                     </select>
-                    <input type="text" value={newSocialUrl} onChange={(e) => setNewSocialUrl(e.target.value)} placeholder="URL" className="block w-full rounded-md bg-stone-700 border-stone-600 text-stone-200 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm" />
-                    <button type="button" onClick={addSocialLink} disabled={!newSocialPlatform || !newSocialUrl} className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-stone-600 hover:bg-stone-500 disabled:opacity-50"><Plus className="w-4 h-4" /></button>
+                    <input type="text" value={newSocialUrl} onChange={(e) => setNewSocialUrl(e.target.value)} placeholder="URL" className={`${inputStyles} flex-grow`} />
+                    <button type="button" onClick={addSocialLink} disabled={!newSocialPlatform || !newSocialUrl} className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-stone-600 hover:bg-stone-500 disabled:opacity-50"><Plus className="w-4 h-4" /></button>
                   </div>
                 </div>
                 <PrivacySelector label="Social Links" value={formData.privacy_settings.social_links} onChange={(val) => handlePrivacyChange('social_links', val)} />

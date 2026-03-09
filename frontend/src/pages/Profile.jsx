@@ -41,8 +41,8 @@ export default function Profile() {
     fetchProfile();
   }, [username, currentUser]);
 
-  if (loading) return <div className="p-8 text-center text-stone-400">Loading profile...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+  if (loading) return <div className="p-4 sm:p-8 text-center text-stone-400">Loading profile...</div>;
+  if (error) return <div className="p-4 sm:p-8 text-center text-red-500">{error}</div>;
   if (!profile) return null;
 
   const isOwner = currentUser && currentUser.username === profile.username;
@@ -60,7 +60,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-stone-900 text-stone-200 pb-12">
       {/* Header Section */}
-      <div className="relative h-64 w-full bg-stone-700">
+      <div className="relative h-48 sm:h-64 w-full bg-stone-700">
         {profile.header_image_url ? (
           <img 
             src={`${API_URL}${profile.header_image_url}`} 
@@ -76,10 +76,10 @@ export default function Profile() {
       {/* Main Content Wrapper */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Avatar and Name Section */}
-        <div className="relative -mt-20">
-          <div className="flex flex-col sm:flex-row items-end">
+        <div className="relative -mt-16 sm:-mt-20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end">
             <div className="relative flex-shrink-0">
-              <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-stone-900 bg-stone-800 overflow-hidden shadow-lg">
+              <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-stone-900 bg-stone-800 overflow-hidden shadow-lg">
                 {profile.avatar_url ? (
                   <img 
                     src={`${API_URL}${profile.avatar_url}`} 
@@ -93,10 +93,10 @@ export default function Profile() {
                 )}
               </div>
             </div>
-            <div className="ml-0 sm:ml-6 mt-4 sm:mt-0 flex-grow flex flex-col sm:flex-row justify-between items-baseline">
+            <div className="ml-0 sm:ml-6 mt-4 sm:mt-0 flex-grow w-full flex flex-col sm:flex-row justify-between items-center sm:items-baseline">
               <div className="text-center sm:text-left">
                 <h1 
-                  className="text-3xl font-bold text-white drop-shadow-md"
+                  className="text-2xl sm:text-3xl font-bold text-white drop-shadow-md"
                   style={{ color: profile.username_color || '#FFFFFF' }}
                 >
                   {profile.display_name || profile.username}
@@ -108,68 +108,68 @@ export default function Profile() {
                   <p className="text-stone-300 font-medium drop-shadow-sm mt-1">{profile.real_name}</p>
                 )}
               </div>
+              {isOwner && (
+                <div className="mt-4 sm:mt-0">
+                  <Link 
+                    to="/profile/edit" 
+                    className="flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors shadow-sm text-sm"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Content Box */}
-        <div className="bg-stone-800 border border-stone-700 rounded-lg shadow-lg p-6 sm:p-8 mt-8">
-          <div className="flex justify-end -mt-4 -mr-4">
-            {isOwner && (
-              <Link 
-                to="/profile/edit" 
-                className="flex items-center px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors shadow-sm"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Profile
-              </Link>
-            )}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4">
+        <div className="bg-stone-800 border border-stone-700 rounded-lg shadow-lg p-4 sm:p-6 md:p-8 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* Left Column: Details */}
-            <div className="space-y-6">
+            <div className="lg:col-span-1 space-y-6">
               {profile.in_game_activities && (
                 <div className="bg-amber-900/30 text-amber-200 p-4 rounded-lg border border-amber-800">
-                  <h3 className="text-lg font-semibold text-amber-400 mb-2 flex items-center">
+                  <h3 className="text-base sm:text-lg font-semibold text-amber-400 mb-2 flex items-center">
                     <Gamepad2 className="w-5 h-5 mr-2" /> In-Game Focus
                   </h3>
-                  <p>{profile.in_game_activities}</p>
+                  <p className="text-sm sm:text-base">{profile.in_game_activities}</p>
                 </div>
               )}
               {profile.bio && (
                 <div className="bg-stone-900/50 p-4 rounded-lg border border-stone-700">
-                  <h3 className="text-lg font-semibold text-stone-300 mb-2">About</h3>
-                  <p className="text-stone-400 whitespace-pre-wrap">{profile.bio}</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-stone-300 mb-2">About</h3>
+                  <p className="text-sm sm:text-base text-stone-400 whitespace-pre-wrap">{profile.bio}</p>
                 </div>
               )}
 
               <div className="bg-stone-900/50 border border-stone-700 rounded-lg p-4 space-y-3">
-                <h3 className="text-lg font-semibold text-stone-300 mb-2">Details</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-stone-300 mb-2">Details</h3>
                 
                 {profile.location && (
-                  <div className="flex items-center text-stone-400">
-                    <MapPin className="w-5 h-5 mr-3 text-stone-500" />
+                  <div className="flex items-center text-stone-400 text-sm sm:text-base">
+                    <MapPin className="w-5 h-5 mr-3 text-stone-500 flex-shrink-0" />
                     <span>{profile.location}</span>
                   </div>
                 )}
                 
                 {profile.birthdate && (
-                  <div className="flex items-center text-stone-400">
-                    <Calendar className="w-5 h-5 mr-3 text-stone-500" />
+                  <div className="flex items-center text-stone-400 text-sm sm:text-base">
+                    <Calendar className="w-5 h-5 mr-3 text-stone-500 flex-shrink-0" />
                     <span>{new Date(profile.birthdate).toLocaleDateString()}</span>
                   </div>
                 )}
                 
                 {profile.email && (
-                  <div className="flex items-center text-stone-400">
-                    <Mail className="w-5 h-5 mr-3 text-stone-500" />
+                  <div className="flex items-center text-stone-400 text-sm sm:text-base">
+                    <Mail className="w-5 h-5 mr-3 text-stone-500 flex-shrink-0" />
                     <span>{profile.email}</span>
                   </div>
                 )}
 
                 {profile.discord_username && (
-                  <div className="flex items-center text-stone-400">
-                    <span className="w-5 h-5 mr-3 flex items-center justify-center text-stone-500 font-bold text-xs border border-stone-500 rounded-full">D</span>
+                  <div className="flex items-center text-stone-400 text-sm sm:text-base">
+                    <span className="w-5 h-5 mr-3 flex items-center justify-center text-stone-500 font-bold text-xs border border-stone-500 rounded-full flex-shrink-0">D</span>
                     <span>{profile.discord_username}</span>
                   </div>
                 )}
@@ -177,15 +177,15 @@ export default function Profile() {
 
               {profile.social_links && Object.keys(profile.social_links).length > 0 && (
                 <div className="bg-stone-900/50 border border-stone-700 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-stone-300 mb-3">Socials</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-stone-300 mb-3">Socials</h3>
+                  <div className="flex flex-wrap gap-2">
                     {Object.entries(profile.social_links).map(([platform, url]) => (
                       <a 
                         key={platform}
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center px-3 py-2 bg-stone-700 text-stone-300 rounded hover:bg-stone-600 transition-colors"
+                        className="flex items-center px-3 py-2 bg-stone-700 text-stone-300 rounded hover:bg-stone-600 transition-colors text-sm"
                       >
                         <SocialIcon platform={platform} />
                         <span className="ml-2 capitalize">{platform}</span>
@@ -203,7 +203,7 @@ export default function Profile() {
                 <div className="bg-stone-900/50 border border-amber-800 rounded-lg overflow-hidden">
                   <div className="bg-amber-900/30 px-4 py-3 border-b border-amber-800 flex items-center">
                     <Users className="w-5 h-5 text-amber-400 mr-2" />
-                    <h3 className="font-bold text-amber-400">Groups Led</h3>
+                    <h3 className="font-bold text-amber-400 text-sm sm:text-base">Groups Led</h3>
                   </div>
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {profile.led_groups.map(group => (
@@ -212,7 +212,7 @@ export default function Profile() {
                         to={`/groups/${group.id}`}
                         className="block p-3 border border-stone-700 rounded hover:border-amber-600 hover:shadow-lg transition-all"
                       >
-                        <div className="font-semibold text-stone-300">{group.name}</div>
+                        <div className="font-semibold text-stone-300 text-sm sm:text-base">{group.name}</div>
                         <div className="text-xs text-stone-500 uppercase mt-1">{group.type}</div>
                       </Link>
                     ))}
@@ -225,7 +225,7 @@ export default function Profile() {
                 <div className="bg-stone-900/50 border border-stone-700 rounded-lg overflow-hidden">
                   <div className="bg-stone-700/50 px-4 py-3 border-b border-stone-700 flex items-center">
                     <Users className="w-5 h-5 text-stone-400 mr-2" />
-                    <h3 className="font-bold text-stone-300">Group Memberships</h3>
+                    <h3 className="font-bold text-stone-300 text-sm sm:text-base">Group Memberships</h3>
                   </div>
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {profile.groups.map(group => (
@@ -234,7 +234,7 @@ export default function Profile() {
                         to={`/groups/${group.id}`}
                         className="block p-3 border border-stone-700 rounded hover:border-stone-600 hover:shadow-lg transition-all"
                       >
-                        <div className="font-semibold text-stone-300">{group.name}</div>
+                        <div className="font-semibold text-stone-300 text-sm sm:text-base">{group.name}</div>
                         <div className="text-xs text-stone-500 uppercase mt-1">{group.type}</div>
                       </Link>
                     ))}
@@ -244,7 +244,7 @@ export default function Profile() {
               
               {(!profile.led_groups?.length && !profile.groups?.length) && (
                 <div className="text-center py-12 bg-stone-900/50 rounded-lg border border-stone-700 border-dashed">
-                  <p className="text-stone-500">No group memberships yet.</p>
+                  <p className="text-stone-500 text-sm sm:text-base">No group memberships yet.</p>
                 </div>
               )}
             </div>

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List, Optional, Dict
 import shutil
 import os
 import uuid
@@ -12,9 +12,10 @@ from database import get_session
 from models import (
     User, Profile, UserRead, UserReadWithProfile, ProfileUpdate, 
     UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink,
-    PrivacyLevel, UserRole
+    PrivacyLevel, UserRole, UserReadMe, Announcement, LoreEntry, Poll, Event, EventRSVP, PollVote, Group,
+    StreamerStatus
 )
-from auth import get_current_active_user, get_optional_current_active_user, get_password_hash
+from auth import get_current_active_user, get_optional_current_active_user, get_password_hash, RoleChecker
 from email_utils import send_email
 
 router = APIRouter(
@@ -25,6 +26,88 @@ router = APIRouter(
 UPLOAD_DIR = "static/uploads/profiles"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+@router.get("/me", response_model=UserReadMe)
+async def get_own_profile(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
+    user = session.exec(
+        select(User)
+        .where(User.id == current_user.id)
+        .options(selectinload(User.profile), selectinload(User.groups))
+    ).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user_data = UserReadMe(
+        id=user.id, username=user.username, display_name=user.display_name,
+        email=user.email, discord_username=user.discord_username, role=user.role,
+        is_active=user.is_active, avatar_url=user.profile.avatar_url if user.profile else None,
+        groups=[UserGroupRead.from_orm(g) for g in user.groups]
+    )
+    return user_data
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_own_account(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
+    user_id = current_user.id
+    led_groups = session.exec(select(Group).where(Group.leader_id == user_id)).all()
+    for group in led_groups:
+        group.leader_id = None
+        session.add(group)
+    for model in [Announcement, LoreEntry, Poll, Event]:
+        author_field = "author_id" if hasattr(model, "author_id") else "user_id" if hasattr(model, "user_id") else "host_user_id"
+        items = session.exec(select(model).where(getattr(model, author_field) == user_id)).all()
+        for item in items:
+            session.delete(item)
+    for item in session.exec(select(UserGroupLink).where(UserGroupLink.user_id == user_id)).all():
+        session.delete(item)
+    for item in session.exec(select(EventRSVP).where(EventRSVP.user_id == user_id)).all():
+        session.delete(item)
+    for item in session.exec(select(PollVote).where(PollVote.user_id == user_id)).all():
+        session.delete(item)
+    profile = session.exec(select(Profile).where(Profile.user_id == user_id)).first()
+    if profile:
+        session.delete(profile)
+    user_to_delete = session.get(User, user_id)
+    if user_to_delete:
+        session.delete(user_to_delete)
+    session.commit()
+    return
+
+@router.post("/me/streamer-apply", status_code=status.HTTP_202_ACCEPTED)
+async def apply_for_streamer(
+    social_links: Dict[str, str],
+    current_user: User = Depends(RoleChecker([UserRole.CITIZEN, UserRole.OFFICER, UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    session: Session = Depends(get_session)
+):
+    profile = current_user.profile
+    if not profile:
+        profile = Profile(user_id=current_user.id)
+        session.add(profile)
+    
+    profile.social_links = {**(profile.social_links or {}), **social_links}
+    profile.streamer_status = StreamerStatus.PENDING
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return {"message": "Application submitted successfully."}
+
+@router.patch("/me/streamer-settings", status_code=status.HTTP_200_OK)
+async def update_streamer_settings(
+    visibility: PrivacyLevel,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    profile = current_user.profile
+    if not profile or profile.streamer_status != StreamerStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not an approved streamer.")
+    
+    if visibility not in [PrivacyLevel.PUBLIC, PrivacyLevel.MEMBERS_ONLY]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid visibility level.")
+
+    profile.streamer_visibility = visibility
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return {"message": "Settings updated."}
+
 @router.get("/{username}/profile", response_model=UserPublicProfile)
 async def get_user_profile(
     username: str, 
@@ -34,17 +117,12 @@ async def get_user_profile(
     user = session.exec(
         select(User)
         .where(User.username == username)
-        .options(
-            selectinload(User.profile),
-            selectinload(User.groups),
-            selectinload(User.led_groups)
-        )
+        .options(selectinload(User.profile), selectinload(User.groups), selectinload(User.led_groups))
     ).first()
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Ensure profile exists
     if not user.profile:
         profile = Profile(user_id=user.id)
         session.add(profile)
@@ -54,72 +132,49 @@ async def get_user_profile(
     profile = user.profile
     privacy = profile.privacy_settings or {}
     
-    # Determine if requester can see private/members_only info
     is_owner = current_user and current_user.id == user.id
     is_staff = current_user and current_user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR]
-    is_citizen_plus = current_user and current_user.role in [
-        UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.OFFICER, UserRole.CITIZEN
-    ]
+    is_citizen_plus = current_user and current_user.role in [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.OFFICER, UserRole.CITIZEN]
 
     def can_see(field_name):
-        if is_owner or is_staff:
-            return True
+        if is_owner or is_staff: return True
         level = privacy.get(field_name, PrivacyLevel.PUBLIC)
-        if level == PrivacyLevel.PUBLIC:
-            return True
-        if level == PrivacyLevel.MEMBERS_ONLY and is_citizen_plus:
-            return True
+        if level == PrivacyLevel.PUBLIC: return True
+        if level == PrivacyLevel.MEMBERS_ONLY and is_citizen_plus: return True
         return False
 
-    # Mandatory Public Fields
     response_data = {
-        "id": user.id,
-        "username": user.username,
-        "display_name": user.display_name,
-        "avatar_url": profile.avatar_url,
-        "header_image_url": profile.header_image_url,
-        "username_color": profile.username_color,
-        "in_game_activities": profile.in_game_activities,
-        "groups": [],
-        "led_groups": []
+        "id": user.id, "username": user.username, "display_name": user.display_name,
+        "avatar_url": profile.avatar_url, "header_image_url": profile.header_image_url,
+        "username_color": profile.username_color, "in_game_activities": profile.in_game_activities,
+        "streamer_status": profile.streamer_status, "streamer_visibility": profile.streamer_visibility,
+        "groups": [], "led_groups": []
     }
     
-    # Optional Fields based on Privacy Settings
-    if can_see("bio"):
-        response_data["bio"] = profile.bio
-    if can_see("real_name"):
-        response_data["real_name"] = profile.real_name
-    if can_see("gender"):
-        response_data["gender"] = profile.gender
-    if can_see("birthdate"):
-        response_data["birthdate"] = profile.birthdate
-    if can_see("location"):
-        response_data["location"] = profile.location
-    if can_see("typical_playtime"):
-        response_data["typical_playtime"] = profile.typical_playtime
-    if can_see("social_links"):
-        response_data["social_links"] = profile.social_links
+    if can_see("bio"): response_data["bio"] = profile.bio
+    if can_see("real_name"): response_data["real_name"] = profile.real_name
+    if can_see("gender"): response_data["gender"] = profile.gender
+    if can_see("birthdate"): response_data["birthdate"] = profile.birthdate
+    if can_see("location"): response_data["location"] = profile.location
+    if can_see("typical_playtime"): response_data["typical_playtime"] = profile.typical_playtime
+    if can_see("social_links"): response_data["social_links"] = profile.social_links
         
-    # Discord and Email (usually more restricted)
     if is_owner or is_staff or is_citizen_plus:
         response_data["discord_username"] = user.discord_username
         response_data["email"] = user.email
         
-    # Fields for editing (only populated for owner/staff)
     if is_owner or is_staff:
         response_data["in_game_username"] = profile.in_game_username
         response_data["use_in_game_name"] = profile.use_in_game_name
         response_data["privacy_settings"] = profile.privacy_settings
         
-    # Process Groups
     for group in user.led_groups:
-        response_data["led_groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
-        
+        response_data["led_groups"].append(UserGroupRead.from_orm(group))
     for group in user.groups:
         if group.leader_id != user.id:
-             response_data["groups"].append(UserGroupRead(id=group.id, name=group.name, type=group.type))
+             response_data["groups"].append(UserGroupRead.from_orm(group))
              
-    return response_data
+    return UserPublicProfile(**response_data)
 
 @router.patch("/me/profile", response_model=UserReadWithProfile)
 async def update_own_profile(
@@ -141,63 +196,42 @@ async def update_own_profile(
         
     session.add(profile)
     session.commit()
+    session.refresh(profile)
     session.refresh(current_user)
     
-    user = session.exec(
-        select(User)
-        .where(User.id == current_user.id)
-        .options(selectinload(User.profile))
-    ).first()
-    
-    return user
+    return current_user
 
 @router.post("/me/avatar")
-async def upload_avatar(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-):
+async def upload_avatar(file: UploadFile = File(...), current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
     file_extension = os.path.splitext(file.filename)[1]
     filename = f"avatar_{current_user.id}_{uuid.uuid4()}{file_extension}"
     file_path = os.path.join(UPLOAD_DIR, filename)
-    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
-    image_url = f"/{UPLOAD_DIR}/{filename}"
-    
+    image_url = f"/{os.path.join(UPLOAD_DIR, filename)}"
     if not current_user.profile:
         profile = Profile(user_id=current_user.id, avatar_url=image_url)
         session.add(profile)
     else:
         current_user.profile.avatar_url = image_url
         session.add(current_user.profile)
-        
     session.commit()
     return {"url": image_url}
 
 @router.post("/me/header")
-async def upload_header(
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_active_user),
-    session: Session = Depends(get_session)
-):
+async def upload_header(file: UploadFile = File(...), current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
     file_extension = os.path.splitext(file.filename)[1]
     filename = f"header_{current_user.id}_{uuid.uuid4()}{file_extension}"
     file_path = os.path.join(UPLOAD_DIR, filename)
-    
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        
-    image_url = f"/{UPLOAD_DIR}/{filename}"
-    
+    image_url = f"/{os.path.join(UPLOAD_DIR, filename)}"
     if not current_user.profile:
         profile = Profile(user_id=current_user.id, header_image_url=image_url)
         session.add(profile)
     else:
         current_user.profile.header_image_url = image_url
         session.add(current_user.profile)
-        
     session.commit()
     return {"url": image_url}
 

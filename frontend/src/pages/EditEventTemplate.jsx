@@ -11,6 +11,7 @@ export default function EditEventTemplate() {
     // Since there isn't a direct endpoint to get a single template by ID in the provided backend code,
     // we fetch all templates and find the one we need.
     // Ideally, the backend should have a GET /admin/events/templates/{id} endpoint.
+      //
     api.get(`/admin/events/templates`)
       .then(res => {
         const foundTemplate = res.data.find(t => t.id === parseInt(id));
