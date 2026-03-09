@@ -8,15 +8,12 @@ import {
   Save, 
   X, 
   Upload, 
-  Eye, 
-  EyeOff, 
   Plus, 
   Trash2,
   Shield,
   Globe,
   Lock,
-  Users,
-  User as UserIcon
+  Users
 } from 'lucide-react';
 
 function getCroppedImg(image, crop, fileName) {

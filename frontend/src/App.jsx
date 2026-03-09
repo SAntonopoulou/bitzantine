@@ -13,6 +13,7 @@ import Government from './pages/Government';
 import Lore from './pages/Lore';
 import LoreEntryPage from './pages/LoreEntryPage';
 import EraPage from './pages/EraPage';
+import Streamers from './pages/Streamers';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminLore from './pages/AdminLore';
 import AddEra from './pages/AddEra';
@@ -79,6 +80,7 @@ export default function App() {
                 <Route path="/lore" element={<Lore />} />
                 <Route path="/lore/eras/:eraId" element={<EraPage />} />
                 <Route path="/lore/:entryId" element={<LoreEntryPage />} />
+                <Route path="/streamers" element={<Streamers />} />
                 <Route path="/join" element={<Join />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
