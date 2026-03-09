@@ -1,21 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../apiClient';
+import { api } from '../api';
 
 export default function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await apiClient.post('/users', { username, email, password });
+      const res = await api.post('/users', { username, email, password });
       if (res.status === 200 || res.status === 201) {
-        setMessage('Registration successful! Redirecting to verification...');
-        setTimeout(() => navigate('/verify-code', { state: { email } }), 2000);
+        navigate('/login');
       } else {
         alert('Registration failed');
       }
@@ -28,7 +26,6 @@ export default function Register() {
     <div className="flex justify-center items-center h-screen bg-stone-900">
       <form onSubmit={handleSubmit} className="bg-stone-800 p-8 rounded shadow-md w-96 border border-stone-700">
         <h2 className="text-2xl mb-4 font-bold text-amber-500">Register</h2>
-        {message && <p className="mb-4 text-green-500">{message}</p>}
         <input 
           type="text" 
           placeholder="Username" 

@@ -6,7 +6,6 @@ from typing import List, Optional
 from database import get_session
 from models import User, UserRead, UserRole, Group, UserGroupLink, Profile, StreamerStatus
 from auth import get_current_active_user, RoleChecker
-from email_utils import send_email
 
 router = APIRouter(
     prefix="/admin",
@@ -119,14 +118,6 @@ async def update_user_status(user_id: int, status_update: StatusUpdateRequest, s
     session.add(user)
     session.commit()
     session.refresh(user)
-
-    if user.is_active:
-        send_email(
-            to_email=user.email,
-            subject="Your Bitzantine Account Has Been Approved",
-            html_content=f"<p>Hello {user.username},</p><p>Your account has been approved by an administrator. You can now log in and access the Bitzantine Empire portal.</p>"
-        )
-
     return user
 
 class GroupAssignRequest(SQLModel):

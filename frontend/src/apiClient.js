@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-export const apiClient = axios.create({
+const apiClient = axios.create({
   baseURL: API_URL,
   withCredentials: true,
 });
@@ -14,3 +14,5 @@ apiClient.interceptors.request.use(config => {
     }
     return config;
 });
+
+export { apiClient };
