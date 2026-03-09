@@ -27,7 +27,8 @@ async def get_users(session: Session = Depends(get_session)):
             "id": user.id, "username": user.username, "display_name": user.display_name,
             "email": user.email, "discord_username": user.discord_username, "role": user.role,
             "is_active": user.is_active, "groups": [group.name for group in user.groups],
-            "avatar_url": user.profile.avatar_url if user.profile else None
+            "avatar_url": user.profile.avatar_url if user.profile else None,
+            "streamer_status": user.profile.streamer_status if user.profile else 'none'
         }
         response_data.append(user_data)
     return response_data
@@ -64,6 +65,16 @@ async def reject_streamer(user_id: int, session: Session = Depends(get_session))
     session.add(profile)
     session.commit()
     return {"message": "Streamer application rejected."}
+
+@router.post("/users/{user_id}/streamer-remove", status_code=status.HTTP_200_OK)
+async def remove_streamer(user_id: int, session: Session = Depends(get_session)):
+    profile = session.exec(select(Profile).where(Profile.user_id == user_id)).first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found for user.")
+    profile.streamer_status = StreamerStatus.NONE
+    session.add(profile)
+    session.commit()
+    return {"message": "User removed from streamer program."}
 
 class RoleUpdateRequest(SQLModel):
     role: UserRole
