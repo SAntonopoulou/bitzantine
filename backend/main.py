@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
 from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection, SiteSetting
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
-from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls, home, admin_home, admin_site_settings
+from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls, home, admin_home, admin_site_settings, streamers
 from typing import List, Dict
 import os
 
@@ -77,6 +77,7 @@ app.include_router(announcements.router)
 app.include_router(polls.router)
 app.include_router(home.router)
 app.include_router(users.router)
+app.include_router(streamers.router)
 app.include_router(admin.router)
 app.include_router(admin_events.router)
 app.include_router(admin_users.router)

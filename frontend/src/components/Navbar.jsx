@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Tv } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -36,9 +36,7 @@ export default function Navbar() {
 
   const SiteLogo = ({ isMobile = false }) => (
     <Link to="/" onClick={isMobile ? toggleMenu : undefined} className="flex items-center gap-3">
-      {settings.site_logo && (
-        <img src={`${API_URL}${settings.site_logo}`} alt="Site Logo" className="h-8 w-auto" />
-      )}
+      {settings.site_logo && <img src={`${API_URL}${settings.site_logo}`} alt="Site Logo" className="h-8 w-auto" />}
       <span className="font-bold text-xl text-amber-500">{settings.site_name || 'Bitzantium'}</span>
     </Link>
   );
@@ -54,6 +52,7 @@ export default function Navbar() {
             <Link to="/events" className={mobileLinkStyles} onClick={toggleMenu}>Events</Link>
             <Link to="/government" className={mobileLinkStyles} onClick={toggleMenu}>Government</Link>
             <Link to="/lore" className={mobileLinkStyles} onClick={toggleMenu}>Lore</Link>
+            <Link to="/streamers" className={mobileLinkStyles} onClick={toggleMenu}>Streamers</Link>
             {user ? (
               <>
                 <hr className="border-stone-700 my-2"/>
@@ -83,6 +82,7 @@ export default function Navbar() {
       <Link to="/events" className={desktopLinkStyles}>Events</Link>
       <Link to="/government" className={desktopLinkStyles}>Government</Link>
       <Link to="/lore" className={desktopLinkStyles}>Lore</Link>
+      <Link to="/streamers" className="flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors"><Tv size={18}/> Streamers</Link>
       <div className="w-px h-6 bg-stone-700"></div>
       {user ? (
         <div className="relative" ref={profileMenuRef}>

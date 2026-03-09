@@ -1,13 +1,14 @@
 import React from 'react';
 
-export default function ConfirmationModal({ 
-  message, 
-  onConfirm, 
-  onCancel, 
-  isOpen, 
-  title = "Are you sure?",
-  confirmText = "Confirm", 
-  isDestructive = false 
+export default function ConfirmationModal({
+  title,
+  message,
+  children,
+  isOpen,
+  onClose,
+  onConfirm,
+  confirmText = "Confirm",
+  isDestructive = false
 }) {
   if (!isOpen) return null;
 
@@ -19,16 +20,19 @@ export default function ConfirmationModal({
     <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center z-50 p-4">
       <div className="bg-stone-800 rounded-lg shadow-xl p-6 sm:p-8 max-w-md w-full border border-stone-700">
         <h2 className="text-xl font-bold text-stone-100 mb-4">{title}</h2>
-        <p className="text-stone-300 mb-8">{message}</p>
-        <div className="flex justify-end gap-4">
-          <button 
-            onClick={onCancel} 
-            className="px-4 py-2 rounded text-stone-300 hover:bg-stone-700 transition-colors"
+        {message && <p className="text-stone-300 mb-6">{message}</p>}
+        
+        {children}
+
+        <div className="flex justify-end gap-4 mt-8">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded text-stone-300 bg-stone-700 hover:bg-stone-600 transition-colors"
           >
             Cancel
           </button>
-          <button 
-            onClick={onConfirm} 
+          <button
+            onClick={onConfirm}
             className={`px-4 py-2 rounded font-medium transition-colors ${confirmButtonStyles}`}
           >
             {confirmText}

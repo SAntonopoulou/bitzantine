@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import List, Optional, Dict
 import shutil
 import os
 import uuid
@@ -11,9 +11,10 @@ from database import get_session
 from models import (
     User, Profile, UserRead, UserReadWithProfile, ProfileUpdate, 
     UserPublicProfile, UserGroupRead, GroupRole, MembershipStatus, UserGroupLink,
-    PrivacyLevel, UserRole, UserReadMe, Announcement, LoreEntry, Poll, Event, EventRSVP, PollVote, Group
+    PrivacyLevel, UserRole, UserReadMe, Announcement, LoreEntry, Poll, Event, EventRSVP, PollVote, Group,
+    StreamerStatus
 )
-from auth import get_current_active_user, get_optional_current_active_user
+from auth import get_current_active_user, get_optional_current_active_user, RoleChecker
 
 router = APIRouter(
     prefix="/users",
@@ -43,44 +44,67 @@ async def get_own_profile(current_user: User = Depends(get_current_active_user),
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_own_account(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):
     user_id = current_user.id
-
-    # Reassign leadership of any groups led by the user to NULL
     led_groups = session.exec(select(Group).where(Group.leader_id == user_id)).all()
     for group in led_groups:
         group.leader_id = None
         session.add(group)
-
-    # Manually delete content where the user is the author/host
-    # Using specific fields instead of a generic loop
-    for item in session.exec(select(Announcement).where(Announcement.author_id == user_id)).all():
-        session.delete(item)
-    for item in session.exec(select(LoreEntry).where(LoreEntry.user_id == user_id)).all():
-        session.delete(item)
-    for item in session.exec(select(Poll).where(Poll.author_id == user_id)).all():
-        session.delete(item)
-    for item in session.exec(select(Event).where(Event.host_user_id == user_id)).all():
-        session.delete(item)
-        
-    # Manually delete memberships and votes
+    for model in [Announcement, LoreEntry, Poll, Event]:
+        author_field = "author_id" if hasattr(model, "author_id") else "user_id" if hasattr(model, "user_id") else "host_user_id"
+        items = session.exec(select(model).where(getattr(model, author_field) == user_id)).all()
+        for item in items:
+            session.delete(item)
     for item in session.exec(select(UserGroupLink).where(UserGroupLink.user_id == user_id)).all():
         session.delete(item)
     for item in session.exec(select(EventRSVP).where(EventRSVP.user_id == user_id)).all():
         session.delete(item)
     for item in session.exec(select(PollVote).where(PollVote.user_id == user_id)).all():
         session.delete(item)
-
-    # Delete the user's profile
     profile = session.exec(select(Profile).where(Profile.user_id == user_id)).first()
     if profile:
         session.delete(profile)
-
-    # Finally, delete the user
     user_to_delete = session.get(User, user_id)
     if user_to_delete:
         session.delete(user_to_delete)
-    
     session.commit()
     return
+
+@router.post("/me/streamer-apply", status_code=status.HTTP_202_ACCEPTED)
+async def apply_for_streamer(
+    social_links: Dict[str, str],
+    current_user: User = Depends(RoleChecker([UserRole.CITIZEN, UserRole.OFFICER, UserRole.MODERATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN])),
+    session: Session = Depends(get_session)
+):
+    profile = current_user.profile
+    if not profile:
+        profile = Profile(user_id=current_user.id)
+        session.add(profile)
+    
+    profile.social_links = {**(profile.social_links or {}), **social_links}
+    profile.streamer_status = StreamerStatus.PENDING
+    
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return {"message": "Application submitted successfully."}
+
+@router.patch("/me/streamer-settings", status_code=status.HTTP_200_OK)
+async def update_streamer_settings(
+    visibility: PrivacyLevel,
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    profile = current_user.profile
+    if not profile or profile.streamer_status != StreamerStatus.APPROVED:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not an approved streamer.")
+    
+    if visibility not in [PrivacyLevel.PUBLIC, PrivacyLevel.MEMBERS_ONLY]:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid visibility level.")
+
+    profile.streamer_visibility = visibility
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return {"message": "Settings updated."}
 
 @router.get("/{username}/profile", response_model=UserPublicProfile)
 async def get_user_profile(
@@ -121,6 +145,7 @@ async def get_user_profile(
         "id": user.id, "username": user.username, "display_name": user.display_name,
         "avatar_url": profile.avatar_url, "header_image_url": profile.header_image_url,
         "username_color": profile.username_color, "in_game_activities": profile.in_game_activities,
+        "streamer_status": profile.streamer_status, "streamer_visibility": profile.streamer_visibility,
         "groups": [], "led_groups": []
     }
     
