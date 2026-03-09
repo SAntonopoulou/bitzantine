@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from typing import List, Optional
@@ -14,6 +14,7 @@ from models import (
     PrivacyLevel, UserRole
 )
 from auth import get_current_active_user, get_optional_current_active_user
+from email_utils import send_email
 
 router = APIRouter(
     prefix="/users",
@@ -198,3 +199,36 @@ async def upload_header(
         
     session.commit()
     return {"url": image_url}
+
+@router.post("/me/change-email")
+async def change_email(
+    new_email: str = Body(..., embed=True),
+    current_user: User = Depends(get_current_active_user),
+    session: Session = Depends(get_session)
+):
+    # Check if email is already taken
+    existing_user = session.exec(select(User).where(User.email == new_email)).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    old_email = current_user.email
+    current_user.email = new_email
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+
+    # Send notification to old email
+    send_email(
+        to_email=old_email,
+        subject="Your Bitzantine Email Has Been Changed",
+        html_content=f"<p>Hello {current_user.username},</p><p>Your email address has been changed to {new_email}. If you did not authorize this change, please contact support immediately.</p>"
+    )
+
+    # Send verification/notification to new email
+    send_email(
+        to_email=new_email,
+        subject="Email Changed Successfully",
+        html_content=f"<p>Hello {current_user.username},</p><p>Your email address has been successfully changed to {new_email}.</p>"
+    )
+
+    return {"message": "Email updated successfully"}

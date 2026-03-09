@@ -42,6 +42,7 @@ import Polls from './pages/Polls';
 import PollDetail from './pages/PollDetail';
 import AdminPolls from './pages/AdminPolls';
 import HomeEditor from './pages/admin/HomeEditor';
+import VerifyCode from './pages/VerifyCode';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/join" element={<Join />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-code" element={<VerifyCode />} />
               <Route path="/profile/:username" element={<Profile />} />
               
               {/* User Routes */}

@@ -6,11 +6,14 @@ from contextlib import asynccontextmanager
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
-from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection
+from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection, VerificationRequest
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
 from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls, home, admin_home
 from typing import List
 import os
+import random
+from datetime import datetime, timedelta
+from email_utils import send_email
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,7 +30,8 @@ async def lifespan(app: FastAPI):
                 email="admin@example.com",
                 hashed_password=hashed_password,
                 role=UserRole.SUPER_ADMIN,
-                is_active=True
+                is_active=True,
+                is_verified=True
             )
             session.add(user)
             session.commit()
@@ -146,6 +150,11 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email not verified. Please check your email for verification code.",
+        )
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -157,16 +166,27 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @app.post("/users", response_model=UserRead)
 async def create_user(user: UserCreate, session: Session = Depends(get_session)):
-    db_user = session.exec(select(User).where(User.username == user.username)).first()
-    if db_user:
+    db_user_by_username = session.exec(select(User).where(User.username == user.username)).first()
+    if db_user_by_username:
         raise HTTPException(status_code=400, detail="Username already registered")
+    
+    db_user_by_email = session.exec(select(User).where(User.email == user.email)).first()
+    if db_user_by_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = get_password_hash(user.password)
+    verification_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    verification_code_expires_at = datetime.utcnow() + timedelta(minutes=15)
+
     db_user = User(
         username=user.username, 
         email=user.email, 
         hashed_password=hashed_password,
         discord_username=user.discord_username,
-        is_active=False
+        is_active=False,
+        is_verified=False,
+        verification_code=verification_code,
+        verification_code_expires_at=verification_code_expires_at
     )
     session.add(db_user)
     session.commit()
@@ -177,7 +197,44 @@ async def create_user(user: UserCreate, session: Session = Depends(get_session))
     session.add(profile)
     session.commit()
 
+    # Send verification email
+    send_email(
+        to_email=user.email,
+        subject="Verify your Bitzantine Account",
+        html_content=f"""
+        <p>Hello {user.username},</p>
+        <p>Welcome to the Bitzantine Empire! Your verification code is:</p>
+        <h2>{verification_code}</h2>
+        <p>This code will expire in 15 minutes.</p>
+        <p>After verification, your account will be pending admin approval.</p>
+        """
+    )
+
     return db_user
+
+@app.post("/verify-email")
+async def verify_email(request: VerificationRequest, session: Session = Depends(get_session)):
+    user = session.exec(select(User).where(User.email == request.email)).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user.is_verified:
+        return {"message": "Email already verified"}
+
+    if user.verification_code != request.code:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+
+    if datetime.utcnow() > user.verification_code_expires_at:
+        raise HTTPException(status_code=400, detail="Verification code has expired")
+
+    user.is_verified = True
+    user.verification_code = None
+    user.verification_code_expires_at = None
+    session.add(user)
+    session.commit()
+    
+    return {"message": "Email verified successfully. Please wait for admin approval."}
 
 @app.get("/users/me", response_model=UserReadMe)
 async def read_users_me(current_user: User = Depends(get_current_active_user), session: Session = Depends(get_session)):

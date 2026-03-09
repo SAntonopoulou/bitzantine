@@ -16,7 +16,13 @@ export default function Login() {
       await login(username, password);
       navigate(`/profile/${username}`);
     } catch (err) {
-      setError(err.message || 'Failed to log in. Please check your credentials.');
+      if (err.message.includes("Email not verified")) {
+        // Navigate to verification page without passing state,
+        // as the user might have entered a username.
+        navigate('/verify-code');
+      } else {
+        setError(err.message || 'Failed to log in. Please check your credentials.');
+      }
     }
   };
 
@@ -40,7 +46,7 @@ export default function Login() {
 
           <div className="mb-6">
             <label className="block text-stone-300 text-sm font-bold mb-2" htmlFor="username">
-              Username
+              Username or Email
             </label>
             <input
               id="username"
@@ -71,7 +77,7 @@ export default function Login() {
           </div>
           <p className="text-center text-stone-500 text-sm mt-8">
             Don't have an account?{' '}
-            <Link to="/join" className="font-bold text-amber-600 hover:text-amber-500">
+            <Link to="/register" className="font-bold text-amber-600 hover:text-amber-500">
               Register here
             </Link>
           </p>

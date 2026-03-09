@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { api } from '../api';
+import { apiClient } from '../apiClient';
 
 const AuthContext = createContext(null);
 
@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   const fetchUser = async () => {
     try {
-      const response = await api.get('/users/me');
+      const response = await apiClient.get('/users/me');
       setUser(response.data);
     } catch (error) {
       console.error("Failed to fetch user:", error);
@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     formData.append('password', password);
 
     try {
-      const response = await api.post('/token', formData, {
+      const response = await apiClient.post('/token', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
       

@@ -124,6 +124,9 @@ class User(SQLModel, table=True):
     hashed_password: str
     role: UserRole = Field(default=UserRole.USER)
     is_active: bool = Field(default=False)
+    is_verified: bool = Field(default=False)
+    verification_code: Optional[str] = Field(default=None, index=True)
+    verification_code_expires_at: Optional[datetime] = None
     
     profile: Optional[Profile] = Relationship(back_populates="user")
     announcements: List["Announcement"] = Relationship(back_populates="author")
@@ -269,6 +272,7 @@ class UserRead(SQLModel):
     discord_username: Optional[str] = None
     role: UserRole
     is_active: bool
+    is_verified: bool
     avatar_url: Optional[str] = None
 
 class UserGroupRead(SQLModel):
@@ -432,3 +436,7 @@ class ProfileUpdate(SQLModel):
     social_links: Optional[Dict] = None
     privacy_settings: Optional[Dict] = None
     username_color: Optional[str] = None
+
+class VerificationRequest(SQLModel):
+    email: str
+    code: str

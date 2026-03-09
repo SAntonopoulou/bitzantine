@@ -8,6 +8,8 @@ services:
     volumes:
       - ./backend:/app
       - ./static:/app/static
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=sqlite:///./database.db
     depends_on:
