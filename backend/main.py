@@ -6,11 +6,14 @@ from contextlib import asynccontextmanager
 from sqlmodel import Session, select
 from sqlalchemy.orm import selectinload
 from database import create_db_and_tables, get_session, engine
-from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection, SiteSetting
+from models import User, UserCreate, UserRead, Token, UserRole, UserReadMe, Profile, HomeSection, SiteSetting, VerificationRequest
 from auth import get_password_hash, verify_password, create_access_token, get_current_active_user, RoleChecker
 from routers import events, groups, lore, announcements, admin_events, admin, admin_users, users, polls, home, admin_home, admin_site_settings, streamers
 from typing import List, Dict
 import os
+import random
+from datetime import datetime, timedelta
+from email_utils import send_email
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,7 +31,8 @@ async def lifespan(app: FastAPI):
                 email="admin@example.com",
                 hashed_password=hashed_password,
                 role=UserRole.SUPER_ADMIN,
-                is_active=True
+                is_active=True,
+                is_verified=True
             )
             session.add(user)
             session.commit()
@@ -103,9 +107,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 @app.post("/users", response_model=UserRead, tags=["users"])
 async def create_user(user: UserCreate, session: Session = Depends(get_session)):
-    db_user = session.exec(select(User).where(User.username == user.username)).first()
-    if db_user:
+    db_user_by_username = session.exec(select(User).where(User.username == user.username)).first()
+    if db_user_by_username:
         raise HTTPException(status_code=400, detail="Username already registered")
+    
+    db_user_by_email = session.exec(select(User).where(User.email == user.email)).first()
+    if db_user_by_email:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = get_password_hash(user.password)
     db_user = User(username=user.username, email=user.email, hashed_password=hashed_password, discord_username=user.discord_username, is_active=False)
     session.add(db_user)

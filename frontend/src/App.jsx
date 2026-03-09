@@ -44,6 +44,8 @@ import Polls from './pages/Polls';
 import PollDetail from './pages/PollDetail';
 import AdminPolls from './pages/AdminPolls';
 import HomeEditor from './pages/admin/HomeEditor';
+import VerifyCode from './pages/VerifyCode';
+import ChangePassword from './pages/ChangePassword';
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -85,6 +87,7 @@ export default function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/profile/:username" element={<Profile />} />
+                <Route path="/verify-code" element={<VerifyCode />} />
                 
                 {/* User Routes */}
                 <Route path="/profile/edit" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><EditProfile /></ProtectedRoute>} />
@@ -93,6 +96,7 @@ export default function App() {
                 <Route path="/groups/:id/manage" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><GroupManagement /></ProtectedRoute>} />
                 <Route path="/vote" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Vote /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Settings /></ProtectedRoute>} />
+                <Route path="/change-password" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><ChangePassword /></ProtectedRoute>} />
                 <Route path="/polls" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><Polls /></ProtectedRoute>} />
                 <Route path="/polls/:id" element={<ProtectedRoute roles={['user', 'citizen', 'officer', 'moderator', 'admin', 'super_admin']}><PollDetail /></ProtectedRoute>} />
                 
