@@ -123,6 +123,7 @@ const AdminUserManagement = () => {
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isRemoveStreamerModalOpen, setIsRemoveStreamerModalOpen] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(null);
 
     const fetchAllData = () => {
@@ -239,6 +240,18 @@ const AdminUserManagement = () => {
         } catch (error) { console.error("Error deleting user:", error); }
     };
 
+    const handleRemoveStreamer = async () => {
+        try {
+            await api.post(`/admin/users/${selectedUser.id}/streamer-remove`);
+            showNotification("User removed from streamer program.", "success");
+            fetchAllData();
+            setIsRemoveStreamerModalOpen(false);
+        } catch (error) {
+            console.error("Error removing streamer:", error);
+            showNotification("Failed to remove streamer.", "error");
+        }
+    };
+
     const openRoleModal = (user) => { setSelectedUser(user); setIsRoleModalOpen(true); setMobileMenuOpen(null); };
     const openGroupModal = (user) => {
         setSelectedUser(user);
@@ -248,6 +261,11 @@ const AdminUserManagement = () => {
         setMobileMenuOpen(null);
     };
     const openDeleteModal = (user) => { setSelectedUser(user); setIsDeleteModalOpen(true); setMobileMenuOpen(null); };
+    const openRemoveStreamerModal = (user) => {
+        setSelectedUser(user);
+        setIsRemoveStreamerModalOpen(true);
+        setMobileMenuOpen(null);
+    };
     const canChangeRole = (targetUserRole) => {
         if (!currentUser) return false;
         if (currentUser.role === 'super_admin') return true;
@@ -319,6 +337,11 @@ const AdminUserManagement = () => {
                                                 {user.is_active ? <button onClick={() => handleStatusChange(user, false)} className="w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-stone-800 flex items-center gap-2"><UserX size={16}/>Suspend</button> : <button onClick={() => handleStatusChange(user, true)} className="w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-stone-800 flex items-center gap-2"><UserCheck size={16}/>Approve</button>}
                                                 {canChangeRole(user.role) && <button onClick={() => openRoleModal(user)} className="w-full text-left px-4 py-2 text-sm text-stone-300 hover:bg-stone-800 flex items-center gap-2"><Shield size={16}/>Change Role</button>}
                                                 <button onClick={() => openGroupModal(user)} className="w-full text-left px-4 py-2 text-sm text-stone-300 hover:bg-stone-800 flex items-center gap-2"><Users size={16}/>Edit Groups</button>
+                                                {user.streamer_status === 'approved' && (
+                                                    <button onClick={() => openRemoveStreamerModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-stone-800 flex items-center gap-2">
+                                                        <Tv size={16} /> Remove Streamer
+                                                    </button>
+                                                )}
                                                 {(currentUser.role === 'super_admin' || currentUser.role === 'admin') && <button onClick={() => openDeleteModal(user)} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-stone-800 flex items-center gap-2"><Trash2 size={16}/>Delete</button>}
                                             </div>
                                         )}
@@ -354,6 +377,16 @@ const AdminUserManagement = () => {
                 onConfirm={handleDeleteUser}
                 title="Confirm Deletion"
                 message={`Are you sure you want to delete the user "${selectedUser?.username}"? This action cannot be undone.`}
+            />
+
+            <ConfirmationModal
+                isOpen={isRemoveStreamerModalOpen}
+                onClose={() => setIsRemoveStreamerModalOpen(false)}
+                onConfirm={handleRemoveStreamer}
+                title="Confirm Streamer Removal"
+                message={`Are you sure you want to remove ${selectedUser?.username} from the streamer program?`}
+                confirmText="Confirm"
+                isDestructive={true}
             />
         </div>
     );
